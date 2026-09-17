@@ -25,6 +25,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_BACKUP_PERM = 301;
     private static final int REQ_MIC_PERM = 401;
     private static final int REQ_PICK_BACKUP = 402;
+    private static final int REQ_CREATE_BACKUP = 501;
 
     private ItemAdapter adapter;
     private SpeechRecognizer speech;
@@ -205,6 +207,33 @@ public class MainActivity extends AppCompatActivity {
             }
             return;
         }
+        if (requestCode == REQ_CREATE_BACKUP && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
+            try {
+                Uri uri = data.getData();
+                byte[] bytes = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
+                        ItemStore.loadAllPhotos(this));
+                try (OutputStream os = getContentResolver().openOutputStream(uri, "wt")) {
+                    if (os == null) {
+                        throw new Exception("无法写入所选文件");
+                    }
+                    os.write(bytes);
+                    os.flush();
+                }
+                try {
+                    getContentResolver().takePersistableUriPermission(uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                } catch (Exception ignored) {
+                }
+                AppPrefs.setBackupUri(this, uri.toString());
+                Toast.makeText(this, "已保存（" + (bytes.length / 1024) + "KB）！"
+                        + "以后点「① 保存备份」会自动覆盖到这里", Toast.LENGTH_LONG).show();
+            } catch (Exception e) {
+                Toast.makeText(this, "保存失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if (requestCode == REQ_PICK_BACKUP && resultCode == RESULT_OK
                 && data != null && data.getData() != null) {
             restoreFromUri(data.getData());
@@ -226,17 +255,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doBackup() {
-        if (!ensureBackupPermission()) {
-            return;
+        String saved = AppPrefs.getBackupUri(this);
+        if (saved != null && !saved.isEmpty()) {
+            try {
+                Uri uri = Uri.parse(saved);
+                byte[] bytes = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
+                        ItemStore.loadAllPhotos(this));
+                try (OutputStream os = getContentResolver().openOutputStream(uri, "wt")) {
+                    if (os == null) {
+                        throw new Exception("无法写入");
+                    }
+                    os.write(bytes);
+                    os.flush();
+                }
+                Toast.makeText(this, "已覆盖保存（" + (bytes.length / 1024) + "KB）到之前选择的位置",
+                        Toast.LENGTH_LONG).show();
+                return;
+            } catch (Exception e) {
+                AppPrefs.setBackupUri(this, null);
+                Toast.makeText(this, "之前的位置已失效，请重新选择保存位置", Toast.LENGTH_LONG).show();
+            }
         }
+        doSaveToLocation();
+    }
+
+    private void doSaveToLocation() {
         try {
-            byte[] data = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
-                    ItemStore.loadAllPhotos(this));
-            BackupUtil.save(this, data);
-            Toast.makeText(this, "备份成功！" + (data.length / 1024) + "KB，位置：文件管理 → 下载(Download) → "
-                    + BackupUtil.FILE_NAME, Toast.LENGTH_LONG).show();
+            Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("application/zip");
+            i.putExtra(Intent.EXTRA_TITLE, BackupUtil.FILE_NAME);
+            startActivityForResult(i, REQ_CREATE_BACKUP);
         } catch (Exception e) {
-            Toast.makeText(this, "备份失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "无法打开文件选择器", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -245,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
             if (is == null) {
                 throw new Exception("无法读取所选文件");
             }
-            BackupUtil.BackupData d = BackupUtil.unpackZip(BackupUtil.readAll(is));
+            BackupUtil.BackupData d = BackupUtil.unpackAny(BackupUtil.readAll(is));
             List<Item> merged = ItemStore.merge(ItemStore.load(this),
                     ItemStore.fromJson(d.json));
             ItemStore.save(this, merged);
@@ -263,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         try {
-            BackupUtil.BackupData d = BackupUtil.unpackZip(BackupUtil.read(this));
+            BackupUtil.BackupData d = BackupUtil.unpackAny(BackupUtil.read(this));
             List<Item> merged = ItemStore.merge(ItemStore.load(this),
                     ItemStore.fromJson(d.json));
             ItemStore.save(this, merged);
@@ -374,14 +425,18 @@ public class MainActivity extends AppCompatActivity {
             String status;
             try {
                 long size = BackupUtil.size(this);
-                status = "当前备份：存在，" + (size / 1024) + " KB（文件管理 → 下载）";
+                status = "自动备份文件：存在，" + (size / 1024) + " KB";
             } catch (Exception e) {
-                status = "当前没有备份文件";
+                status = "自动备份文件：未找到";
             }
-            CharSequence[] opts = {"① 保存备份到本机（覆盖旧备份）",
-                    "② 从备份恢复（卸载重装后用）",
+            String saved = AppPrefs.getBackupUri(this);
+            status += "\n手动保存位置：" + (saved == null || saved.isEmpty()
+                    ? "未选择（第一次请点⑤）" : "已记住 ✓");
+            CharSequence[] opts = {"① 保存备份（覆盖之前保存的）",
+                    "② 从备份恢复（自动查找下载文件夹）",
                     "③ 永久删除备份（需密码）",
-                    "④ 从文件选择备份恢复（微信/别的手机传来）"};
+                    "④ 从文件选择备份恢复（可微信传来）",
+                    "⑤ 选择保存位置（第一次备份先点这个）"};
             new AlertDialog.Builder(this)
                     .setTitle("备份 / 恢复")
                     .setMessage(status)
@@ -392,8 +447,10 @@ public class MainActivity extends AppCompatActivity {
                             doRestore();
                         } else if (w == 2) {
                             PassDialog.show(this, "永久删除备份（密码）", this::doDeleteBackup);
-                        } else {
+                        } else if (w == 3) {
                             pickBackupFile();
+                        } else {
+                            doSaveToLocation();
                         }
                     })
                     .setNegativeButton("取消", null)

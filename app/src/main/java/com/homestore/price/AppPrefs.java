@@ -12,6 +12,7 @@ public class AppPrefs {
 
     private static final String PREF = "app_settings";
     private static final String KEY = "color_index";
+    private static final String KEY_BACKUP_URI = "backup_uri";
 
     public static int getColorIndex(Context ctx) {
         return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getInt(KEY, 0);
@@ -27,5 +28,15 @@ public class AppPrefs {
 
     public static void setColorIndex(Context ctx, int index) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putInt(KEY, index).apply();
+    }
+
+    public static String getBackupUri(Context ctx) {
+        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+                .getString(KEY_BACKUP_URI, null);
+    }
+
+    public static void setBackupUri(Context ctx, String uri) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+                .edit().putString(KEY_BACKUP_URI, uri).apply();
     }
 }

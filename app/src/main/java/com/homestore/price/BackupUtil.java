@@ -12,6 +12,7 @@ import android.provider.MediaStore;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -27,10 +28,50 @@ import java.util.zip.ZipOutputStream;
 public class BackupUtil {
 
     public static final String FILE_NAME = "ShopPriceBackup.zip";
+    public static final String LEGACY_NAME = "ShopPriceBackup.bin";
 
     public static class BackupData {
         public String json;
         public List<ItemStore.Attachment> atts = new ArrayList<>();
+    }
+
+    public static BackupData unpackAny(byte[] data) throws Exception {
+        if (data.length > 4 && data[0] == 'P' && data[1] == 'K') {
+            return unpackZip(data);
+        }
+        return unpackLegacy(data);
+    }
+
+    public static BackupData unpackLegacy(byte[] data) throws Exception {
+        DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
+        BackupData d = new BackupData();
+        int jl = dis.readInt();
+        if (jl <= 0 || jl > 50 * 1024 * 1024) {
+            throw new Exception("备份文件损坏");
+        }
+        byte[] jb = new byte[jl];
+        dis.readFully(jb);
+        d.json = new String(jb, StandardCharsets.UTF_8);
+        int n = dis.readInt();
+        if (n < 0 || n > 5000) {
+            throw new Exception("备份文件损坏");
+        }
+        for (int i = 0; i < n; i++) {
+            int fl = dis.readInt();
+            if (fl <= 0 || fl > 256) {
+                throw new Exception("备份文件损坏");
+            }
+            byte[] fb = new byte[fl];
+            dis.readFully(fb);
+            int bl = dis.readInt();
+            if (bl < 0 || bl > 50 * 1024 * 1024) {
+                throw new Exception("备份文件损坏");
+            }
+            byte[] bb = new byte[bl];
+            dis.readFully(bb);
+            d.atts.add(new ItemStore.Attachment(new String(fb, StandardCharsets.UTF_8), bb));
+        }
+        return d;
     }
 
     public static byte[] packToZip(String json, List<ItemStore.Attachment> atts) throws Exception {
@@ -92,7 +133,7 @@ public class BackupUtil {
                 os.write(data);
                 os.flush();
             }
-            if (findBackup(resolver) == null) {
+            if (findBackup(resolver, FILE_NAME) == null) {
                 throw new Exception("保存失败，请重试");
             }
         } else {
@@ -107,77 +148,81 @@ public class BackupUtil {
     }
 
     public static byte[] read(Context ctx) throws Exception {
-        if (Build.VERSION.SDK_INT >= 29) {
-            Uri found = findBackup(ctx.getContentResolver());
-            if (found == null) {
-                throw new Exception("「下载(Download)」里没有备份文件，请先「保存备份」");
-            }
-            try (InputStream is = ctx.getContentResolver().openInputStream(found)) {
-                if (is == null) {
-                    throw new Exception("无法读取备份文件");
+        byte[] data = readNamed(ctx, FILE_NAME);
+        if (data == null) {
+            data = readNamed(ctx, LEGACY_NAME);
+        }
+        if (data == null) {
+            throw new Exception("「下载(Download)」里没有备份文件，请先「保存备份」");
+        }
+        return data;
+    }
+
+    private static byte[] readNamed(Context ctx, String name) {
+        try {
+            if (Build.VERSION.SDK_INT >= 29) {
+                Uri found = findBackup(ctx.getContentResolver(), name);
+                if (found == null) {
+                    return null;
                 }
-                return readAll(is);
+                try (InputStream is = ctx.getContentResolver().openInputStream(found)) {
+                    if (is == null) {
+                        return null;
+                    }
+                    return readAll(is);
+                }
+            } else {
+                File f = new File(Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_DOWNLOADS), name);
+                if (!f.exists()) {
+                    return null;
+                }
+                try (InputStream is = new FileInputStream(f)) {
+                    return readAll(is);
+                }
             }
-        } else {
-            File f = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
-            if (!f.exists()) {
-                throw new Exception("「下载(Download)」里没有备份文件，请先「保存备份」");
-            }
-            try (InputStream is = new FileInputStream(f)) {
-                return readAll(is);
-            }
+        } catch (Exception e) {
+            return null;
         }
     }
 
     public static long size(Context ctx) throws Exception {
-        if (Build.VERSION.SDK_INT >= 29) {
-            Uri found = findBackup(ctx.getContentResolver());
-            if (found == null) {
-                throw new Exception("没有备份");
-            }
-            try (InputStream is = ctx.getContentResolver().openInputStream(found)) {
-                if (is == null) {
-                    throw new Exception("没有备份");
-                }
-                return readAll(is).length;
-            }
-        }
-        File f = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
-        if (!f.exists()) {
-            throw new Exception("没有备份");
-        }
-        return f.length();
+        byte[] data = read(ctx);
+        return data.length;
     }
 
     public static void deleteBackup(Context ctx) throws Exception {
+        boolean deleted = false;
         if (Build.VERSION.SDK_INT >= 29) {
-            Uri found = findBackup(ctx.getContentResolver());
-            if (found == null) {
-                throw new Exception("没有备份文件");
+            for (String name : new String[]{FILE_NAME, LEGACY_NAME}) {
+                Uri found = findBackup(ctx.getContentResolver(), name);
+                if (found != null) {
+                    ctx.getContentResolver().delete(found, null, null);
+                    deleted = true;
+                }
             }
-            ctx.getContentResolver().delete(found, null, null);
         } else {
-            File f = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
-            if (!f.exists()) {
-                throw new Exception("没有备份文件");
+            for (String name : new String[]{FILE_NAME, LEGACY_NAME}) {
+                File f = new File(Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_DOWNLOADS), name);
+                if (f.exists() && f.delete()) {
+                    deleted = true;
+                }
             }
-            if (!f.delete()) {
-                throw new Exception("删除失败");
-            }
+        }
+        if (!deleted) {
+            throw new Exception("没有备份文件");
         }
     }
 
-    private static Uri findBackup(ContentResolver resolver) {
+    private static Uri findBackup(ContentResolver resolver, String name) {
         if (Build.VERSION.SDK_INT < 29) {
             return null;
         }
         Cursor c = resolver.query(MediaStore.Downloads.EXTERNAL_CONTENT_URI,
                 new String[]{MediaStore.MediaColumns._ID},
                 MediaStore.MediaColumns.DISPLAY_NAME + "=?",
-                new String[]{FILE_NAME}, null);
+                new String[]{name}, null);
         if (c != null) {
             try {
                 if (c.moveToFirst()) {
@@ -192,9 +237,11 @@ public class BackupUtil {
     }
 
     private static void deleteBackupApi29Plus(ContentResolver resolver) {
-        Uri found = findBackup(resolver);
-        if (found != null) {
-            resolver.delete(found, null, null);
+        for (String name : new String[]{FILE_NAME, LEGACY_NAME}) {
+            Uri found = findBackup(resolver, name);
+            if (found != null) {
+                resolver.delete(found, null, null);
+            }
         }
     }
 
