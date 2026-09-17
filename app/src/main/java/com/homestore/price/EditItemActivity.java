@@ -115,23 +115,24 @@ public class EditItemActivity extends AppCompatActivity {
         if (isNew) {
             btnDelete.setVisibility(View.GONE);
         } else {
-            btnDelete.setOnClickListener(v -> new AlertDialog.Builder(this)
-                    .setTitle("删除商品")
-                    .setMessage("确定删除「" + item.name + "」吗？")
-                    .setPositiveButton("删除", (d, w) -> {
-                        List<Item> all = ItemStore.load(this);
-                        for (Item it : all) {
-                            if (it.id != null && it.id.equals(item.id)) {
-                                ItemStore.deletePhoto(this, it.photo);
-                            }
-                        }
-                        all.removeIf(x -> x.id != null && x.id.equals(item.id));
-                        ItemStore.save(this, all);
-                        Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-                        finish();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show());
+            btnDelete.setOnClickListener(v -> PassDialog.show(this, "删除商品需要密码", () ->
+                    new AlertDialog.Builder(this)
+                            .setTitle("删除商品")
+                            .setMessage("确定删除「" + item.name + "」吗？")
+                            .setPositiveButton("删除", (d, w) -> {
+                                List<Item> all = ItemStore.load(this);
+                                for (Item it : all) {
+                                    if (it.id != null && it.id.equals(item.id)) {
+                                        ItemStore.deletePhoto(this, it.photo);
+                                    }
+                                }
+                                all.removeIf(x -> x.id != null && x.id.equals(item.id));
+                                ItemStore.save(this, all);
+                                Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+                                finish();
+                            })
+                            .setNegativeButton("取消", null)
+                            .show()));
         }
     }
 

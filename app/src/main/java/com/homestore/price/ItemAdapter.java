@@ -23,10 +23,20 @@ public class ItemAdapter extends BaseAdapter {
     private final LayoutInflater inflater;
     private final SimpleDateFormat fmt = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
     private String keyword = "";
+    private boolean showCost = false;
 
     public ItemAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
+    }
+
+    public boolean isCostShown() {
+        return showCost;
+    }
+
+    public void setShowCost(boolean b) {
+        showCost = b;
+        notifyDataSetChanged();
     }
 
     public void setData(List<Item> items) {
@@ -89,6 +99,7 @@ public class ItemAdapter extends BaseAdapter {
         tvPrice.setText("售价 " + fmtNum(it.price));
         tvCost.setText("成本 " + fmtNum(it.cost));
         tvQty.setText("数量 " + fmtNum(it.qty));
+        tvCost.setVisibility(showCost ? View.VISIBLE : View.GONE);
         tvTime.setText(fmt.format(new Date(it.updatedAt)));
 
         Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);

@@ -38,7 +38,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         list.setOnItemLongClickListener((parent, view, position, id) -> {
-            confirmDelete(adapter.getItem(position));
+            Item it = adapter.getItem(position);
+            PassDialog.show(this, "删除商品需要密码", () -> confirmDelete(it));
             return true;
         });
 
@@ -107,8 +108,21 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_sync) {
+        int id = item.getItemId();
+        if (id == R.id.action_sync) {
             startActivity(new Intent(this, SyncActivity.class));
+            return true;
+        }
+        if (id == R.id.action_cost) {
+            if (adapter.isCostShown()) {
+                adapter.setShowCost(false);
+                Toast.makeText(this, "已隐藏成本价", Toast.LENGTH_SHORT).show();
+            } else {
+                PassDialog.show(this, "查看成本价（密码）", () -> {
+                    adapter.setShowCost(true);
+                    Toast.makeText(this, "已显示成本价，再点一次「成本价」可隐藏", Toast.LENGTH_LONG).show();
+                });
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);
