@@ -11,4 +11,14 @@
         android:id="@+id/action_sync"
         android:title="蓝牙同步"
         app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_backup"
+        android:title="备份 / 恢复"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_settings"
+        android:title="设置"
+        app:showAsAction="never" />
 </menu>
