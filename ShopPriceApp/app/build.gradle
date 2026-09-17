@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+}
+
+def ksFile = rootProject.file('keystore/shop.p12')
+
+android {
+    namespace 'com.homestore.price'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.homestore.price"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        if (ksFile.exists()) {
+            release {
+                storeFile ksFile
+                storeType 'PKCS12'
+                storePassword 'shop123456'
+                keyAlias 'shopkey'
+                keyPassword 'shop123456'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig ksFile.exists() ? signingConfigs.release : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'com.google.android.material:material:1.12.0'
+}
