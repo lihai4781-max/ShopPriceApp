@@ -297,35 +297,43 @@ public class MainActivity extends AppCompatActivity {
                 throw new Exception("无法读取所选文件");
             }
             BackupUtil.BackupData d = BackupUtil.unpackAny(BackupUtil.readAll(is));
-            List<Item> merged = ItemStore.merge(ItemStore.load(this),
-                    ItemStore.fromJson(d.json));
-            ItemStore.save(this, merged);
-            ItemStore.savePhotos(this, d.atts);
-            adapter.setData(merged);
-            updateSummary();
-            Toast.makeText(this, "恢复完成，共 " + merged.size() + " 个商品", Toast.LENGTH_LONG).show();
+            applyRestore(d);
         } catch (Exception e) {
             Toast.makeText(this, "恢复失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void applyRestore(BackupUtil.BackupData d) throws Exception {
+        List<Item> merged = ItemStore.merge(ItemStore.load(this),
+                ItemStore.fromJson(d.json));
+        ItemStore.save(this, merged);
+        ItemStore.savePhotos(this, d.atts);
+        adapter.setData(merged);
+        updateSummary();
+        Toast.makeText(this, "恢复完成，共 " + merged.size() + " 个商品", Toast.LENGTH_LONG).show();
     }
 
     private void doRestore() {
         if (Build.VERSION.SDK_INT <= 28 && !ensureBackupPermission()) {
             return;
         }
-        try {
-            BackupUtil.BackupData d = BackupUtil.unpackAny(BackupUtil.read(this));
-            List<Item> merged = ItemStore.merge(ItemStore.load(this),
-                    ItemStore.fromJson(d.json));
-            ItemStore.save(this, merged);
-            ItemStore.savePhotos(this, d.atts);
-            adapter.setData(merged);
-            updateSummary();
-            Toast.makeText(this, "恢复完成，共 " + merged.size() + " 个商品", Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
-            Toast.makeText(this, "恢复失败：" + e.getMessage()
-                    + "，也可改用「从文件选择备份」", Toast.LENGTH_LONG).show();
+        String saved = AppPrefs.getBackupUri(this);
+        if (saved != null && !saved.isEmpty()) {
+            try (InputStream is = getContentResolver().openInputStream(Uri.parse(saved))) {
+                if (is != null) {
+                    applyRestore(BackupUtil.unpackAny(BackupUtil.readAll(is)));
+                    return;
+                }
+            } catch (Exception ignored) {
+            }
         }
+        try {
+            applyRestore(BackupUtil.unpackAny(BackupUtil.read(this)));
+            return;
+        } catch (Exception ignored) {
+        }
+        Toast.makeText(this, "没有自动找到备份文件，请在弹出的窗口中选择备份文件", Toast.LENGTH_SHORT).show();
+        pickBackupFile();
     }
 
     private void doDeleteBackup() {
@@ -422,35 +430,18 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_backup) {
-            String status;
-            try {
-                long size = BackupUtil.size(this);
-                status = "自动备份文件：存在，" + (size / 1024) + " KB";
-            } catch (Exception e) {
-                status = "自动备份文件：未找到";
-            }
-            String saved = AppPrefs.getBackupUri(this);
-            status += "\n手动保存位置：" + (saved == null || saved.isEmpty()
-                    ? "未选择（第一次请点⑤）" : "已记住 ✓");
             CharSequence[] opts = {"① 保存备份（覆盖之前保存的）",
-                    "② 从备份恢复（自动查找下载文件夹）",
-                    "③ 永久删除备份（需密码）",
-                    "④ 从文件选择备份恢复（可微信传来）",
-                    "⑤ 选择保存位置（第一次备份先点这个）"};
+                    "② 从备份恢复",
+                    "③ 永久删除备份（需密码）"};
             new AlertDialog.Builder(this)
                     .setTitle("备份 / 恢复")
-                    .setMessage(status)
                     .setItems(opts, (d, w) -> {
                         if (w == 0) {
                             doBackup();
                         } else if (w == 1) {
                             doRestore();
-                        } else if (w == 2) {
-                            PassDialog.show(this, "永久删除备份（密码）", this::doDeleteBackup);
-                        } else if (w == 3) {
-                            pickBackupFile();
                         } else {
-                            doSaveToLocation();
+                            PassDialog.show(this, "永久删除备份（密码）", this::doDeleteBackup);
                         }
                     })
                     .setNegativeButton("取消", null)
