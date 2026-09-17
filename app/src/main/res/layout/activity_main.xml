@@ -10,8 +10,26 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/primary"
-        android:padding="12dp"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
         android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold" />
+
+    <EditText
+        android:id="@+id/etSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:background="@drawable/bg_search"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:drawablePadding="6dp"
+        android:hint="输入名称查找商品"
+        android:inputType="text"
+        android:maxLines="1"
+        android:padding="10dp"
         android:textSize="15sp" />
 
     <FrameLayout
@@ -23,7 +41,7 @@
             android:id="@+id/listView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:divider="#DDDDDD"
+            android:divider="#EEEEEE"
             android:dividerHeight="1dp" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton

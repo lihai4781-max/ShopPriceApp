@@ -2,8 +2,11 @@ package com.homestore.price;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,12 +27,15 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        adapter = new ItemAdapter(getLayoutInflater());
+        adapter = new ItemAdapter(this);
         ListView list = findViewById(R.id.listView);
         list.setAdapter(adapter);
 
-        list.setOnItemClickListener((parent, view, position, id) ->
-                ItemDialog.show(this, adapter.getItem(position), saved -> reload()));
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            Intent it = new Intent(this, EditItemActivity.class);
+            it.putExtra("item_id", adapter.getItem(position).id);
+            startActivity(it);
+        });
 
         list.setOnItemLongClickListener((parent, view, position, id) -> {
             confirmDelete(adapter.getItem(position));
@@ -37,20 +43,39 @@ public class MainActivity extends AppCompatActivity {
         });
 
         FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(v -> ItemDialog.show(this, null, saved -> reload()));
+        fab.setOnClickListener(v -> startActivity(new Intent(this, EditItemActivity.class)));
+
+        EditText etSearch = findViewById(R.id.etSearch);
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                adapter.setFilter(s.toString());
+                updateSummary();
+            }
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        reload();
+        adapter.setData(ItemStore.load(this));
+        updateSummary();
     }
 
-    private void reload() {
-        List<Item> items = ItemStore.load(this);
-        adapter.setData(items);
+    private void updateSummary() {
         TextView tv = findViewById(R.id.tvSummary);
-        tv.setText("共 " + items.size() + " 个商品（点击修改，长按删除）");
+        int total = adapter.getTotalCount();
+        int shown = adapter.getCount();
+        tv.setText(total == shown ? "共 " + total + " 个商品（长按删除）"
+                : "找到 " + shown + " 个 / 共 " + total + " 个商品");
     }
 
     private void confirmDelete(Item it) {
@@ -59,9 +84,15 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage("确定删除「" + it.name + "」吗？")
                 .setPositiveButton("删除", (d, w) -> {
                     List<Item> items = ItemStore.load(this);
+                    for (Item x : items) {
+                        if (it.id != null && it.id.equals(x.id)) {
+                            ItemStore.deletePhoto(this, x.photo);
+                        }
+                    }
                     items.removeIf(x -> it.id != null && it.id.equals(x.id));
                     ItemStore.save(this, items);
-                    reload();
+                    adapter.setData(items);
+                    updateSummary();
                     Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
                 })
                 .setNegativeButton("取消", null)

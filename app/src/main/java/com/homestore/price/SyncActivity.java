@@ -40,8 +40,8 @@ public class SyncActivity extends AppCompatActivity {
         Button btnSend = findViewById(R.id.btnSend);
         Button btnBtSettings = findViewById(R.id.btnBtSettings);
 
-        log("说明：先用手机系统蓝牙把两台手机「配对」，再回到这里同步。");
-        log("一台手机点「接收端」，另一台点「发送端」。");
+        log("说明：先用系统蓝牙把两台手机「配对」，再回到这里同步。");
+        log("商品和图片会一起传输，图片越多用时越长。");
 
         btnListen.setOnClickListener(v -> ensureBt(this::startServer));
         btnSend.setOnClickListener(v -> ensureBt(this::showPairedAndSend));
@@ -75,15 +75,16 @@ public class SyncActivity extends AppCompatActivity {
         }
         busy = true;
         String myJson = ItemStore.toJson(ItemStore.load(this));
-        BtSync.server(adapter, myJson, new BtSync.Listener() {
+        BtSync.server(adapter, myJson, ItemStore.photosDir(this), new BtSync.Listener() {
             @Override
             public void onLog(String msg) {
                 runOnUiThread(() -> log(msg));
             }
 
             @Override
-            public void onDone(String mergedJson) {
+            public void onDone(String mergedJson, List<ItemStore.Attachment> atts) {
                 runOnUiThread(() -> {
+                    ItemStore.savePhotos(SyncActivity.this, atts);
                     ItemStore.save(SyncActivity.this, ItemStore.fromJson(mergedJson));
                     busy = false;
                     Toast.makeText(SyncActivity.this, "同步完成，已保存", Toast.LENGTH_SHORT).show();
@@ -129,15 +130,16 @@ public class SyncActivity extends AppCompatActivity {
         }
         busy = true;
         String myJson = ItemStore.toJson(ItemStore.load(this));
-        BtSync.client(adapter, device, myJson, new BtSync.Listener() {
+        BtSync.client(adapter, device, myJson, ItemStore.photosDir(this), new BtSync.Listener() {
             @Override
             public void onLog(String msg) {
                 runOnUiThread(() -> log(msg));
             }
 
             @Override
-            public void onDone(String mergedJson) {
+            public void onDone(String mergedJson, List<ItemStore.Attachment> atts) {
                 runOnUiThread(() -> {
+                    ItemStore.savePhotos(SyncActivity.this, atts);
                     ItemStore.save(SyncActivity.this, ItemStore.fromJson(mergedJson));
                     busy = false;
                     Toast.makeText(SyncActivity.this, "同步完成，已保存", Toast.LENGTH_SHORT).show();

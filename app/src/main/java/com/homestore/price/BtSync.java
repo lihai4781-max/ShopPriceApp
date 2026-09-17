@@ -8,8 +8,16 @@ import android.bluetooth.BluetoothSocket;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class BtSync {
@@ -20,10 +28,15 @@ public class BtSync {
     public interface Listener {
         void onLog(String msg);
 
-        void onDone(String mergedJson);
+        void onDone(String mergedJson, List<ItemStore.Attachment> atts);
     }
 
-    public static void server(BluetoothAdapter adapter, String myJson, Listener listener) {
+    private static class Payload {
+        String json;
+        List<ItemStore.Attachment> atts;
+    }
+
+    public static void server(BluetoothAdapter adapter, String myJson, File photosDir, Listener listener) {
         new Thread(() -> {
             BluetoothServerSocket server = null;
             BluetoothSocket socket = null;
@@ -31,14 +44,18 @@ public class BtSync {
                 listener.onLog("接收端已开启，等待对方连接…（请让另一台手机点「发送端」）");
                 server = adapter.listenUsingRfcommWithServiceRecord(SDP_NAME, APP_UUID);
                 socket = server.accept();
-                listener.onLog("对方已连接，正在接收数据…");
-                String other = readString(socket);
-                listener.onLog("收到 " + ItemStore.fromJson(other).size() + " 条商品，正在合并…");
-                String merged = ItemStore.toJson(
-                        ItemStore.merge(ItemStore.fromJson(myJson), ItemStore.fromJson(other)));
-                writeString(socket, merged);
-                listener.onLog("同步完成！双方数据已一致。");
-                listener.onDone(merged);
+                listener.onLog("对方已连接，正在接收商品和图片…");
+                Payload other = readPayload(socket.getInputStream());
+                listener.onLog("已收到 " + countItems(other.json) + " 条商品、"
+                        + other.atts.size() + " 张图片，正在合并…");
+                savePhotos(photosDir, other.atts);
+                List<Item> otherItems = ItemStore.fromJson(other.json);
+                List<Item> merged = ItemStore.merge(ItemStore.fromJson(myJson), otherItems);
+                listener.onLog("正在把缺少的图片回传给对方…");
+                List<ItemStore.Attachment> toSend = missingPhotos(photosDir, merged, otherItems);
+                writePayload(socket.getOutputStream(), ItemStore.toJson(merged), toSend);
+                listener.onLog("同步完成！双方商品与图片已一致。");
+                listener.onDone(ItemStore.toJson(merged), other.atts);
             } catch (Exception e) {
                 listener.onLog("同步失败：" + e.getMessage());
             } finally {
@@ -48,7 +65,8 @@ public class BtSync {
         }).start();
     }
 
-    public static void client(BluetoothAdapter adapter, BluetoothDevice device, String myJson, Listener listener) {
+    public static void client(BluetoothAdapter adapter, BluetoothDevice device,
+                              String myJson, File photosDir, Listener listener) {
         new Thread(() -> {
             BluetoothSocket socket = null;
             try {
@@ -59,11 +77,17 @@ public class BtSync {
                 } catch (Exception ignored) {
                 }
                 socket.connect();
-                listener.onLog("已连接，正在发送本机数据…");
-                writeString(socket, myJson);
-                String merged = readString(socket);
-                listener.onLog("同步完成！双方数据已一致。");
-                listener.onDone(merged);
+                listener.onLog("已连接，正在发送本机商品和图片…");
+                writePayload(socket.getOutputStream(), myJson, loadAll(photosDir));
+                listener.onLog("发送完成，正在接收对方数据…");
+                Payload resp = readPayload(socket.getInputStream());
+                listener.onLog("收到 " + countItems(resp.json) + " 条商品、"
+                        + resp.atts.size() + " 张图片，正在合并…");
+                savePhotos(photosDir, resp.atts);
+                List<Item> merged = ItemStore.merge(
+                        ItemStore.fromJson(myJson), ItemStore.fromJson(resp.json));
+                listener.onLog("同步完成！双方商品与图片已一致。");
+                listener.onDone(ItemStore.toJson(merged), resp.atts);
             } catch (Exception e) {
                 listener.onLog("同步失败：" + e.getMessage() + "（请确认对方已点「接收端」）");
             } finally {
@@ -72,22 +96,135 @@ public class BtSync {
         }).start();
     }
 
-    private static String readString(BluetoothSocket socket) throws IOException {
-        DataInputStream in = new DataInputStream(socket.getInputStream());
-        int len = in.readInt();
-        if (len <= 0 || len > 20 * 1024 * 1024) {
-            throw new IOException("数据异常");
+    private static List<ItemStore.Attachment> loadAll(File photosDir) {
+        List<ItemStore.Attachment> list = new ArrayList<>();
+        File[] files = photosDir.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                byte[] b = readFile(f);
+                if (b != null) {
+                    list.add(new ItemStore.Attachment(f.getName(), b));
+                }
+            }
         }
-        byte[] buf = new byte[len];
-        in.readFully(buf);
-        return new String(buf, StandardCharsets.UTF_8);
+        return list;
     }
 
-    private static void writeString(BluetoothSocket socket, String s) throws IOException {
-        byte[] data = s.getBytes(StandardCharsets.UTF_8);
-        DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-        out.writeInt(data.length);
-        out.write(data);
+    private static List<ItemStore.Attachment> missingPhotos(File photosDir,
+                                                            List<Item> merged, List<Item> otherItems) {
+        Map<String, Item> otherMap = new HashMap<>();
+        for (Item it : otherItems) {
+            if (it.id != null) {
+                otherMap.put(it.id, it);
+            }
+        }
+        List<ItemStore.Attachment> out = new ArrayList<>();
+        HashSet<String> names = new HashSet<>();
+        for (Item it : merged) {
+            if (it.photo == null) {
+                continue;
+            }
+            Item o = otherMap.get(it.id);
+            boolean need = (o == null || it.updatedAt > o.updatedAt);
+            if (need && !names.contains(it.photo)) {
+                File f = new File(photosDir, it.photo);
+                if (f.exists()) {
+                    byte[] b = readFile(f);
+                    if (b != null) {
+                        out.add(new ItemStore.Attachment(it.photo, b));
+                        names.add(it.photo);
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    private static void savePhotos(File photosDir, List<ItemStore.Attachment> atts) {
+        if (atts == null) {
+            return;
+        }
+        for (ItemStore.Attachment a : atts) {
+            try {
+                String name = new File(a.name).getName();
+                if (name.isEmpty() || !name.endsWith(".jpg")) {
+                    continue;
+                }
+                File out = new File(photosDir, name);
+                try (FileOutputStream fos = new FileOutputStream(out)) {
+                    fos.write(a.bytes);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    private static byte[] readFile(File f) {
+        try (FileInputStream fis = new FileInputStream(f)) {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = fis.read(buf)) > 0) {
+                bos.write(buf, 0, n);
+            }
+            return bos.toByteArray();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static int countItems(String json) {
+        return ItemStore.fromJson(json).size();
+    }
+
+    private static Payload readPayload(DataInputStream in) throws IOException {
+        int jl = in.readInt();
+        if (jl <= 0 || jl > 10 * 1024 * 1024) {
+            throw new IOException("数据异常");
+        }
+        byte[] jb = new byte[jl];
+        in.readFully(jb);
+        Payload p = new Payload();
+        p.json = new String(jb, StandardCharsets.UTF_8);
+        int count = in.readInt();
+        if (count < 0 || count > 2000) {
+            throw new IOException("数据异常");
+        }
+        p.atts = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            int fl = in.readInt();
+            if (fl <= 0 || fl > 256) {
+                throw new IOException("数据异常");
+            }
+            byte[] fb = new byte[fl];
+            in.readFully(fb);
+            String name = new String(fb, StandardCharsets.UTF_8);
+            int bl = in.readInt();
+            if (bl < 0 || bl > 10 * 1024 * 1024) {
+                throw new IOException("图片过大");
+            }
+            byte[] bb = new byte[bl];
+            in.readFully(bb);
+            p.atts.add(new ItemStore.Attachment(name, bb));
+        }
+        return p;
+    }
+
+    private static void writePayload(DataOutputStream out, String json,
+                                     List<ItemStore.Attachment> atts) throws IOException {
+        byte[] j = json.getBytes(StandardCharsets.UTF_8);
+        out.writeInt(j.length);
+        out.write(j);
+        int n = atts == null ? 0 : atts.size();
+        out.writeInt(n);
+        for (int i = 0; i < n; i++) {
+            ItemStore.Attachment a = atts.get(i);
+            byte[] fb = a.name.getBytes(StandardCharsets.UTF_8);
+            out.writeInt(fb.length);
+            out.write(fb);
+            out.writeInt(a.bytes.length);
+            out.write(a.bytes);
+        }
         out.flush();
     }
 

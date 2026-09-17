@@ -9,6 +9,7 @@ public class Item {
     public double price;
     public double qty;
     public long updatedAt;
+    public String photo;
 
     public static Item fromJson(JSONObject o) {
         Item it = new Item();
@@ -18,6 +19,7 @@ public class Item {
         it.price = o.optDouble("price", 0);
         it.qty = o.optDouble("qty", 0);
         it.updatedAt = o.optLong("updatedAt", 0);
+        it.photo = o.has("photo") && !o.isNull("photo") ? o.optString("photo") : null;
         return it;
     }
 
@@ -29,6 +31,9 @@ public class Item {
         o.put("price", price);
         o.put("qty", qty);
         o.put("updatedAt", updatedAt);
+        if (photo != null) {
+            o.put("photo", photo);
+        }
         return o;
     }
 }
