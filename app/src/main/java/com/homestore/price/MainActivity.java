@@ -7,6 +7,8 @@ import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -25,7 +27,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +36,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_BACKUP_PERM = 301;
     private static final int REQ_MIC_PERM = 401;
     private static final int REQ_PICK_BACKUP = 402;
-    private static final int REQ_CREATE_BACKUP = 501;
 
     private ItemAdapter adapter;
     private SpeechRecognizer speech;
@@ -212,45 +212,29 @@ public class MainActivity extends AppCompatActivity {
             }
             return;
         }
-        if (requestCode == REQ_CREATE_BACKUP && resultCode == RESULT_OK
-                && data != null && data.getData() != null) {
-            try {
-                Uri uri = data.getData();
-                byte[] bytes = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
-                        ItemStore.loadAllPhotos(this));
-                try (OutputStream os = getContentResolver().openOutputStream(uri, "wt")) {
-                    if (os == null) {
-                        throw new Exception("无法写入所选文件");
-                    }
-                    os.write(bytes);
-                    os.flush();
-                }
-                try {
-                    getContentResolver().takePersistableUriPermission(uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-                } catch (Exception ignored) {
-                }
-                AppPrefs.setBackupUri(this, uri.toString());
-                Toast.makeText(this, "已保存（" + (bytes.length / 1024) + "KB）！"
-                        + "以后点「① 保存备份」会自动覆盖到这里", Toast.LENGTH_LONG).show();
-            } catch (Exception e) {
-                Toast.makeText(this, "保存失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
-            }
-            return;
-        }
         if (requestCode == REQ_PICK_BACKUP && resultCode == RESULT_OK
                 && data != null && data.getData() != null) {
             restoreFromUri(data.getData());
         }
     }
 
-    private boolean ensureBackupPermission() {
-        if (Build.VERSION.SDK_INT <= 28
-                && (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED
-                || checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED)) {
+    private boolean ensureStorageAccess() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    startActivity(new Intent(
+                            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            Uri.parse("package:" + getPackageName())));
+                } catch (Exception e) {
+                    startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+                }
+                Toast.makeText(this, "请允许「管理所有文件」权限后，回来再点一次", Toast.LENGTH_LONG).show();
+                return false;
+            }
+            return true;
+        }
+        if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{
                     Manifest.permission.WRITE_EXTERNAL_STORAGE,
                     Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_BACKUP_PERM);
@@ -260,39 +244,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doBackup() {
-        String saved = AppPrefs.getBackupUri(this);
-        if (saved != null && !saved.isEmpty()) {
-            try {
-                Uri uri = Uri.parse(saved);
-                byte[] bytes = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
-                        ItemStore.loadAllPhotos(this));
-                try (OutputStream os = getContentResolver().openOutputStream(uri, "wt")) {
-                    if (os == null) {
-                        throw new Exception("无法写入");
-                    }
-                    os.write(bytes);
-                    os.flush();
-                }
-                Toast.makeText(this, "已覆盖保存（" + (bytes.length / 1024) + "KB）到之前选择的位置",
-                        Toast.LENGTH_LONG).show();
-                return;
-            } catch (Exception e) {
-                AppPrefs.setBackupUri(this, null);
-                Toast.makeText(this, "之前的位置已失效，请重新选择保存位置", Toast.LENGTH_LONG).show();
-            }
+        if (!ensureStorageAccess()) {
+            return;
         }
-        doSaveToLocation();
-    }
-
-    private void doSaveToLocation() {
         try {
-            Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-            i.addCategory(Intent.CATEGORY_OPENABLE);
-            i.setType("application/zip");
-            i.putExtra(Intent.EXTRA_TITLE, BackupUtil.FILE_NAME);
-            startActivityForResult(i, REQ_CREATE_BACKUP);
+            byte[] data = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
+                    ItemStore.loadAllPhotos(this));
+            BackupUtil.save(this, data);
+            Toast.makeText(this, "备份成功！位置：内部存储根目录/ShopPriceBackup/"
+                    + BackupUtil.FILE_NAME, Toast.LENGTH_LONG).show();
         } catch (Exception e) {
-            Toast.makeText(this, "无法打开文件选择器", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "备份失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -319,48 +281,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doRestore() {
-        if (Build.VERSION.SDK_INT <= 28 && !ensureBackupPermission()) {
+        if (!ensureStorageAccess()) {
             return;
-        }
-        String saved = AppPrefs.getBackupUri(this);
-        if (saved != null && !saved.isEmpty()) {
-            try (InputStream is = getContentResolver().openInputStream(Uri.parse(saved))) {
-                if (is != null) {
-                    applyRestore(BackupUtil.unpackAny(BackupUtil.readAll(is)));
-                    return;
-                }
-            } catch (Exception ignored) {
-            }
         }
         try {
             applyRestore(BackupUtil.unpackAny(BackupUtil.read(this)));
-            return;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            Toast.makeText(this, "没有自动找到备份文件，请在弹出的窗口中选择备份文件",
+                    Toast.LENGTH_SHORT).show();
+            pickBackupFile();
         }
-        Toast.makeText(this, "没有自动找到备份文件，请在弹出的窗口中选择备份文件", Toast.LENGTH_SHORT).show();
-        pickBackupFile();
     }
 
     private void doDeleteBackup() {
-        boolean deleted = false;
-        String saved = AppPrefs.getBackupUri(this);
-        if (saved != null && !saved.isEmpty()) {
-            try {
-                getContentResolver().delete(Uri.parse(saved), null, null);
-                deleted = true;
-            } catch (Exception ignored) {
-            }
-            AppPrefs.setBackupUri(this, null);
+        if (!ensureStorageAccess()) {
+            return;
         }
         try {
-            BackupUtil.deleteBackup(this);
-            deleted = true;
-        } catch (Exception ignored) {
-        }
-        if (deleted) {
-            Toast.makeText(this, "备份文件已永久删除", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, "没有找到备份文件", Toast.LENGTH_LONG).show();
+            BackupUtil.deleteAll(this);
+            Toast.makeText(this, "备份文件夹（ShopPriceBackup）连同里面文件已全部删除",
+                    Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
         }
     }
 
