@@ -46,7 +46,7 @@ public class BtSync {
                 server = adapter.listenUsingRfcommWithServiceRecord(SDP_NAME, APP_UUID);
                 socket = server.accept();
                 listener.onLog("对方已连接，正在接收商品和图片…");
-                Payload other = readPayload(socket.getInputStream());
+                Payload other = readPayload(new DataInputStream(socket.getInputStream()));
                 listener.onLog("已收到 " + countItems(other.json) + " 条商品、"
                         + other.atts.size() + " 张图片，正在合并…");
                 savePhotos(photosDir, other.atts);
@@ -54,7 +54,8 @@ public class BtSync {
                 List<Item> merged = ItemStore.merge(ItemStore.fromJson(myJson), otherItems);
                 listener.onLog("正在把缺少的图片回传给对方…");
                 List<ItemStore.Attachment> toSend = missingPhotos(photosDir, merged, otherItems);
-                writePayload(socket.getOutputStream(), ItemStore.toJson(merged), toSend);
+                writePayload(new DataOutputStream(socket.getOutputStream()),
+                        ItemStore.toJson(merged), toSend);
                 listener.onLog("同步完成！双方商品与图片已一致。");
                 listener.onDone(ItemStore.toJson(merged), other.atts);
             } catch (Exception e) {
@@ -79,9 +80,10 @@ public class BtSync {
                 }
                 socket.connect();
                 listener.onLog("已连接，正在发送本机商品和图片…");
-                writePayload(socket.getOutputStream(), myJson, loadAll(photosDir));
+                writePayload(new DataOutputStream(socket.getOutputStream()),
+                        myJson, loadAll(photosDir));
                 listener.onLog("发送完成，正在接收对方数据…");
-                Payload resp = readPayload(socket.getInputStream());
+                Payload resp = readPayload(new DataInputStream(socket.getInputStream()));
                 listener.onLog("收到 " + countItems(resp.json) + " 条商品、"
                         + resp.atts.size() + " 张图片，正在合并…");
                 savePhotos(photosDir, resp.atts);
