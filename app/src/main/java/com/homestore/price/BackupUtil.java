@@ -10,9 +10,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.MediaStore;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -21,65 +20,55 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class BackupUtil {
 
-    public static final String FILE_NAME = "ShopPriceBackup.bin";
+    public static final String FILE_NAME = "ShopPriceBackup.zip";
 
     public static class BackupData {
         public String json;
-        public List<ItemStore.Attachment> atts;
+        public List<ItemStore.Attachment> atts = new ArrayList<>();
     }
 
-    public static byte[] pack(String json, List<ItemStore.Attachment> atts) throws Exception {
+    public static byte[] packToZip(String json, List<ItemStore.Attachment> atts) throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(bos);
-        byte[] j = json.getBytes(StandardCharsets.UTF_8);
-        dos.writeInt(j.length);
-        dos.write(j);
-        int n = atts == null ? 0 : atts.size();
-        dos.writeInt(n);
-        for (int i = 0; i < n; i++) {
-            ItemStore.Attachment a = atts.get(i);
-            byte[] fb = a.name.getBytes(StandardCharsets.UTF_8);
-            dos.writeInt(fb.length);
-            dos.write(fb);
-            dos.writeInt(a.bytes.length);
-            dos.write(a.bytes);
+        ZipOutputStream zos = new ZipOutputStream(bos);
+        zos.putNextEntry(new ZipEntry("shop_data.json"));
+        zos.write(json.getBytes(StandardCharsets.UTF_8));
+        zos.closeEntry();
+        if (atts != null) {
+            for (ItemStore.Attachment a : atts) {
+                if (a.name == null || !a.name.endsWith(".jpg")) {
+                    continue;
+                }
+                zos.putNextEntry(new ZipEntry("photos/" + a.name));
+                zos.write(a.bytes);
+                zos.closeEntry();
+            }
         }
-        dos.flush();
+        zos.close();
         return bos.toByteArray();
     }
 
-    public static BackupData unpack(byte[] data) throws Exception {
-        DataInputStream dis = new DataInputStream(new java.io.ByteArrayInputStream(data));
+    public static BackupData unpackZip(byte[] data) throws Exception {
         BackupData d = new BackupData();
-        int jl = dis.readInt();
-        if (jl <= 0 || jl > 50 * 1024 * 1024) {
-            throw new Exception("备份文件损坏");
-        }
-        byte[] jb = new byte[jl];
-        dis.readFully(jb);
-        d.json = new String(jb, StandardCharsets.UTF_8);
-        int n = dis.readInt();
-        if (n < 0 || n > 5000) {
-            throw new Exception("备份文件损坏");
-        }
-        d.atts = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            int fl = dis.readInt();
-            if (fl <= 0 || fl > 256) {
-                throw new Exception("备份文件损坏");
+        ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(data));
+        ZipEntry e;
+        while ((e = zis.getNextEntry()) != null) {
+            String name = e.getName();
+            if (name.equals("shop_data.json")) {
+                d.json = new String(readAll(zis), StandardCharsets.UTF_8);
+            } else if (name.startsWith("photos/") && name.length() > "photos/".length()) {
+                d.atts.add(new ItemStore.Attachment(
+                        name.substring("photos/".length()), readAll(zis)));
             }
-            byte[] fb = new byte[fl];
-            dis.readFully(fb);
-            int bl = dis.readInt();
-            if (bl < 0 || bl > 50 * 1024 * 1024) {
-                throw new Exception("备份文件损坏");
-            }
-            byte[] bb = new byte[bl];
-            dis.readFully(bb);
-            d.atts.add(new ItemStore.Attachment(new String(fb, StandardCharsets.UTF_8), bb));
+        }
+        zis.close();
+        if (d.json == null) {
+            throw new Exception("备份文件格式不对");
         }
         return d;
     }
@@ -90,7 +79,7 @@ public class BackupUtil {
             deleteBackupApi29Plus(resolver);
             ContentValues cv = new ContentValues();
             cv.put(MediaStore.MediaColumns.DISPLAY_NAME, FILE_NAME);
-            cv.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
+            cv.put(MediaStore.MediaColumns.MIME_TYPE, "application/zip");
             cv.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
             Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, cv);
             if (uri == null) {
@@ -101,14 +90,17 @@ public class BackupUtil {
                     throw new Exception("无法写入备份文件");
                 }
                 os.write(data);
+                os.flush();
+            }
+            if (findBackup(resolver) == null) {
+                throw new Exception("保存失败，请重试");
             }
         } else {
             File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             if (!dir.exists()) {
                 dir.mkdirs();
             }
-            File f = new File(dir, FILE_NAME);
-            try (FileOutputStream fos = new FileOutputStream(f)) {
+            try (FileOutputStream fos = new FileOutputStream(new File(dir, FILE_NAME))) {
                 fos.write(data);
             }
         }
@@ -118,7 +110,7 @@ public class BackupUtil {
         if (Build.VERSION.SDK_INT >= 29) {
             Uri found = findBackup(ctx.getContentResolver());
             if (found == null) {
-                throw new Exception("没有找到备份文件，请先备份");
+                throw new Exception("「下载(Download)」里没有备份文件，请先「保存备份」");
             }
             try (InputStream is = ctx.getContentResolver().openInputStream(found)) {
                 if (is == null) {
@@ -130,7 +122,7 @@ public class BackupUtil {
             File f = new File(Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
             if (!f.exists()) {
-                throw new Exception("没有找到备份文件，请先备份");
+                throw new Exception("「下载(Download)」里没有备份文件，请先「保存备份」");
             }
             try (InputStream is = new FileInputStream(f)) {
                 return readAll(is);
@@ -138,18 +130,39 @@ public class BackupUtil {
         }
     }
 
+    public static long size(Context ctx) throws Exception {
+        if (Build.VERSION.SDK_INT >= 29) {
+            Uri found = findBackup(ctx.getContentResolver());
+            if (found == null) {
+                throw new Exception("没有备份");
+            }
+            try (InputStream is = ctx.getContentResolver().openInputStream(found)) {
+                if (is == null) {
+                    throw new Exception("没有备份");
+                }
+                return readAll(is).length;
+            }
+        }
+        File f = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
+        if (!f.exists()) {
+            throw new Exception("没有备份");
+        }
+        return f.length();
+    }
+
     public static void deleteBackup(Context ctx) throws Exception {
         if (Build.VERSION.SDK_INT >= 29) {
             Uri found = findBackup(ctx.getContentResolver());
             if (found == null) {
-                throw new Exception("没有找到备份文件");
+                throw new Exception("没有备份文件");
             }
             ctx.getContentResolver().delete(found, null, null);
         } else {
             File f = new File(Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_DOWNLOADS), FILE_NAME);
             if (!f.exists()) {
-                throw new Exception("没有找到备份文件");
+                throw new Exception("没有备份文件");
             }
             if (!f.delete()) {
                 throw new Exception("删除失败");
@@ -185,7 +198,7 @@ public class BackupUtil {
         }
     }
 
-    private static byte[] readAll(InputStream is) throws Exception {
+    public static byte[] readAll(InputStream is) throws Exception {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         byte[] buf = new byte[8192];
         int n;
