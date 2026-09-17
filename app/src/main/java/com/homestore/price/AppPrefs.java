@@ -10,8 +10,12 @@ public class AppPrefs {
     };
     public static final String[] NAMES = {"橙色", "红色", "蓝色", "绿色", "紫色", "深蓝灰"};
 
+    public static final float[] FONT_SCALES = {0.85f, 1.0f, 1.2f, 1.45f};
+    public static final String[] FONT_NAMES = {"小", "标准", "大", "特大"};
+
     private static final String PREF = "app_settings";
     private static final String KEY = "color_index";
+    private static final String KEY_FONT = "font_index";
     private static final String KEY_BACKUP_URI = "backup_uri";
 
     public static int getColorIndex(Context ctx) {
@@ -28,6 +32,22 @@ public class AppPrefs {
 
     public static void setColorIndex(Context ctx, int index) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putInt(KEY, index).apply();
+    }
+
+    public static int getFontIndex(Context ctx) {
+        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getInt(KEY_FONT, 1);
+    }
+
+    public static float getFontScale(Context ctx) {
+        int idx = getFontIndex(ctx);
+        if (idx < 0 || idx >= FONT_SCALES.length) {
+            idx = 1;
+        }
+        return FONT_SCALES[idx];
+    }
+
+    public static void setFontIndex(Context ctx, int index) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).edit().putInt(KEY_FONT, index).apply();
     }
 
     public static String getBackupUri(Context ctx) {

@@ -61,6 +61,14 @@ public class EditItemActivity extends AppCompatActivity {
         final EditText etQty = findViewById(R.id.etQty);
         final Button btnDelete = findViewById(R.id.btnDelete);
 
+        float fs = AppPrefs.getFontScale(this);
+        etName.setTextSize(16 * fs);
+        etCost.setTextSize(16 * fs);
+        etPrice.setTextSize(16 * fs);
+        etQty.setTextSize(16 * fs);
+        ((Button) findViewById(R.id.btnSave)).setTextSize(16 * fs);
+        btnDelete.setTextSize(15 * fs);
+
         etName.setText(item.name);
         etPrice.setText(fmtNum(item.price));
         etQty.setText(fmtNum(item.qty));

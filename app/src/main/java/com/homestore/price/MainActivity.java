@@ -183,9 +183,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void applyTheme() {
         int color = AppPrefs.getColor(this);
+        float fs = AppPrefs.getFontScale(this);
         findViewById(R.id.tvSummary).setBackgroundColor(color);
         ((FloatingActionButton) findViewById(R.id.fab)).setBackgroundTintList(
                 ColorStateList.valueOf(color));
+        TextView summary = findViewById(R.id.tvSummary);
+        summary.setTextSize(15 * fs);
+        EditText etSearch = findViewById(R.id.etSearch);
+        etSearch.setTextSize(15 * fs);
     }
 
     @Override
@@ -337,11 +342,25 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void doDeleteBackup() {
+        boolean deleted = false;
+        String saved = AppPrefs.getBackupUri(this);
+        if (saved != null && !saved.isEmpty()) {
+            try {
+                getContentResolver().delete(Uri.parse(saved), null, null);
+                deleted = true;
+            } catch (Exception ignored) {
+            }
+            AppPrefs.setBackupUri(this, null);
+        }
         try {
             BackupUtil.deleteBackup(this);
+            deleted = true;
+        } catch (Exception ignored) {
+        }
+        if (deleted) {
             Toast.makeText(this, "备份文件已永久删除", Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "没有找到备份文件", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -449,18 +468,46 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_settings) {
+            CharSequence[] opts = {"背景颜色", "字体大小"};
             new AlertDialog.Builder(this)
-                    .setTitle("选择背景颜色")
-                    .setSingleChoiceItems(AppPrefs.NAMES, AppPrefs.getColorIndex(this),
-                            (d, w) -> {
-                                AppPrefs.setColorIndex(this, w);
-                                d.dismiss();
-                                recreate();
-                            })
+                    .setTitle("设置")
+                    .setItems(opts, (d, w) -> {
+                        if (w == 0) {
+                            showColorDialog();
+                        } else {
+                            showFontDialog();
+                        }
+                    })
                     .setNegativeButton("取消", null)
                     .show();
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showColorDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("选择背景颜色")
+                .setSingleChoiceItems(AppPrefs.NAMES, AppPrefs.getColorIndex(this),
+                        (d, w) -> {
+                            AppPrefs.setColorIndex(this, w);
+                            d.dismiss();
+                            recreate();
+                        })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showFontDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("选择字体大小")
+                .setSingleChoiceItems(AppPrefs.FONT_NAMES, AppPrefs.getFontIndex(this),
+                        (d, w) -> {
+                            AppPrefs.setFontIndex(this, w);
+                            d.dismiss();
+                            recreate();
+                        })
+                .setNegativeButton("取消", null)
+                .show();
     }
 }
