@@ -62,10 +62,30 @@ public class EditItemActivity extends AppCompatActivity {
         final Button btnDelete = findViewById(R.id.btnDelete);
 
         etName.setText(item.name);
-        etCost.setText(fmtNum(item.cost));
         etPrice.setText(fmtNum(item.price));
         etQty.setText(fmtNum(item.qty));
         showPhoto(item.photo);
+
+        final boolean[] costUnlocked = {isNew};
+        if (isNew) {
+            etCost.setText(fmtNum(item.cost));
+        } else {
+            etCost.setText("••••");
+            etCost.setFocusable(false);
+            etCost.setOnClickListener(v -> {
+                if (costUnlocked[0]) {
+                    return;
+                }
+                PassDialog.show(this, "查看/修改成本价（密码）", () -> {
+                    costUnlocked[0] = true;
+                    etCost.setText(fmtNum(item.cost));
+                    etCost.setFocusableInTouchMode(true);
+                    etCost.setFocusable(true);
+                    etCost.requestFocus();
+                    etCost.setSelection(etCost.getText().length());
+                });
+            });
+        }
 
         ivPhoto.setOnClickListener(v -> {
             CharSequence[] opts = {"拍照", "从相册选择", "删除照片"};
@@ -93,7 +113,9 @@ public class EditItemActivity extends AppCompatActivity {
                 return;
             }
             item.name = name;
-            item.cost = parse(etCost);
+            if (costUnlocked[0]) {
+                item.cost = parse(etCost);
+            }
             item.price = parse(etPrice);
             item.qty = parse(etQty);
             item.updatedAt = System.currentTimeMillis();
