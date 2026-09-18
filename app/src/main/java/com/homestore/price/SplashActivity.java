@@ -25,7 +25,7 @@ public class SplashActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        int color = AppPrefs.getColor(this);
+        int color = AppPrefs.getThemeColor(this);
         int dark = darken(color);
         int light = lighten(color);
 

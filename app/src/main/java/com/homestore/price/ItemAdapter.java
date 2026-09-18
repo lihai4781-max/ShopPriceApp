@@ -93,19 +93,16 @@ public class ItemAdapter extends BaseAdapter {
         TextView tvName = v.findViewById(R.id.tvName);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
         TextView tvCost = v.findViewById(R.id.tvCost);
-        TextView tvQty = v.findViewById(R.id.tvQty);
         TextView tvTime = v.findViewById(R.id.tvTime);
 
         tvName.setTextSize(16 * fs);
         tvPrice.setTextSize(15 * fs);
         tvCost.setTextSize(13 * fs);
-        tvQty.setTextSize(13 * fs);
         tvTime.setTextSize(11 * fs);
 
         tvName.setText(it.name);
         tvPrice.setText("价格 " + fmtNum(it.price));
         tvCost.setText("成本 " + fmtNum(it.cost));
-        tvQty.setText("数量 " + fmtNum(it.qty));
         tvCost.setVisibility(showCost ? View.VISIBLE : View.GONE);
         tvTime.setText(fmt.format(new Date(it.updatedAt)));
 

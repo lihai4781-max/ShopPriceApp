@@ -9,9 +9,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Menu;
@@ -27,18 +24,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int REQ_VOICE = 201;
     private static final int REQ_BACKUP_PERM = 301;
-    private static final int REQ_MIC_PERM = 401;
     private static final int REQ_PICK_BACKUP = 402;
 
     private ItemAdapter adapter;
-    private SpeechRecognizer speech;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,108 +74,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        findViewById(R.id.btnMic).setOnClickListener(v -> {
-            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO)
-                    != PackageManager.PERMISSION_GRANTED) {
-                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, REQ_MIC_PERM);
-                return;
-            }
-            startVoice();
-        });
-
         applyTheme();
     }
 
-    private void startVoice() {
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
-            try {
-                Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN");
-                startActivityForResult(i, REQ_VOICE);
-            } catch (Exception e) {
-                Toast.makeText(this, "本机不支持语音识别，可在应用商店安装「讯飞输入法」后重试",
-                        Toast.LENGTH_LONG).show();
-            }
-            return;
-        }
-        if (speech != null) {
-            speech.destroy();
-            speech = null;
-        }
-        speech = SpeechRecognizer.createSpeechRecognizer(this);
-        speech.setRecognitionListener(new RecognitionListener() {
-            @Override
-            public void onReadyForSpeech(Bundle params) {
-            }
-
-            @Override
-            public void onBeginningOfSpeech() {
-            }
-
-            @Override
-            public void onRmsChanged(float rmsdB) {
-            }
-
-            @Override
-            public void onBufferReceived(byte[] buffer) {
-            }
-
-            @Override
-            public void onEndOfSpeech() {
-            }
-
-            @Override
-            public void onEvent(int eventType, Bundle params) {
-            }
-
-            @Override
-            public void onPartialResults(Bundle partialResults) {
-            }
-
-            @Override
-            public void onError(int error) {
-                String msg = (error == SpeechRecognizer.ERROR_NO_MATCH
-                        || error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
-                        ? "没听清，请再试一次"
-                        : "语音识别失败（错误码 " + error + "），可安装「讯飞输入法」后重试";
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show());
-            }
-
-            @Override
-            public void onResults(Bundle results) {
-                runOnUiThread(() -> {
-                    ArrayList<String> list =
-                            results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                    if (list != null && !list.isEmpty()
-                            && list.get(0) != null && !list.get(0).trim().isEmpty()) {
-                        EditText etSearch = findViewById(R.id.etSearch);
-                        etSearch.setText(list.get(0));
-                    } else {
-                        Toast.makeText(MainActivity.this, "没听清，请再试一次", Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-        });
-        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN");
-        speech.startListening(i);
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (speech != null) {
-            speech.destroy();
-            speech = null;
-        }
-        super.onDestroy();
-    }
-
     private void applyTheme() {
-        int color = AppPrefs.getColor(this);
+        int color = AppPrefs.getThemeColor(this);
         float fs = AppPrefs.getFontScale(this);
         findViewById(R.id.tvSummary).setBackgroundColor(color);
         ((FloatingActionButton) findViewById(R.id.fab)).setBackgroundTintList(
@@ -202,16 +98,31 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        autoBackup();
+    }
+
+    private void autoBackup() {
+        try {
+            if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
+                return;
+            }
+            if (Build.VERSION.SDK_INT <= 28
+                    && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+            byte[] data = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
+                    ItemStore.loadAllPhotos(this));
+            BackupUtil.save(this, data);
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQ_VOICE && resultCode == RESULT_OK && data != null) {
-            List<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            if (results != null && !results.isEmpty()) {
-                EditText etSearch = findViewById(R.id.etSearch);
-                etSearch.setText(results.get(0));
-            }
-            return;
-        }
         if (requestCode == REQ_PICK_BACKUP && resultCode == RESULT_OK
                 && data != null && data.getData() != null) {
             restoreFromUri(data.getData());
@@ -325,13 +236,6 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "存储权限已授权，请再次点击「备份 / 恢复」", Toast.LENGTH_LONG).show();
             } else {
                 Toast.makeText(this, "需要存储权限才能备份到本机", Toast.LENGTH_LONG).show();
-            }
-        }
-        if (requestCode == REQ_MIC_PERM) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startVoice();
-            } else {
-                Toast.makeText(this, "需要麦克风权限才能语音查找", Toast.LENGTH_LONG).show();
             }
         }
     }

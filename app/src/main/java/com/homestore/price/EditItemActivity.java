@@ -58,25 +58,22 @@ public class EditItemActivity extends AppCompatActivity {
         final EditText etName = findViewById(R.id.etName);
         final EditText etCost = findViewById(R.id.etCost);
         final EditText etPrice = findViewById(R.id.etPrice);
-        final EditText etQty = findViewById(R.id.etQty);
         final Button btnDelete = findViewById(R.id.btnDelete);
 
         float fs = AppPrefs.getFontScale(this);
         etName.setTextSize(16 * fs);
         etCost.setTextSize(16 * fs);
         etPrice.setTextSize(16 * fs);
-        etQty.setTextSize(16 * fs);
         ((Button) findViewById(R.id.btnSave)).setTextSize(16 * fs);
         btnDelete.setTextSize(15 * fs);
 
         etName.setText(item.name);
-        etPrice.setText(fmtNum(item.price));
-        etQty.setText(fmtNum(item.qty));
+        etPrice.setText(item.price == 0 ? "" : fmtNum(item.price));
         showPhoto(item.photo);
 
         final boolean[] costUnlocked = {isNew};
         if (isNew) {
-            etCost.setText(fmtNum(item.cost));
+            etCost.setText("");
         } else {
             etCost.setText("••••");
             etCost.setFocusable(false);
@@ -86,7 +83,7 @@ public class EditItemActivity extends AppCompatActivity {
                 }
                 PassDialog.show(this, "查看/修改成本价（密码）", () -> {
                     costUnlocked[0] = true;
-                    etCost.setText(fmtNum(item.cost));
+                    etCost.setText(item.cost == 0 ? "" : fmtNum(item.cost));
                     etCost.setFocusableInTouchMode(true);
                     etCost.setFocusable(true);
                     etCost.requestFocus();
@@ -125,7 +122,6 @@ public class EditItemActivity extends AppCompatActivity {
                 item.cost = parse(etCost);
             }
             item.price = parse(etPrice);
-            item.qty = parse(etQty);
             item.updatedAt = System.currentTimeMillis();
             if (pendingPhoto != null) {
                 savePhotoBytes(item.id, pendingPhoto);

@@ -2,6 +2,7 @@ package com.homestore.price;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 
 public class AppPrefs {
 
@@ -28,6 +29,12 @@ public class AppPrefs {
             idx = 0;
         }
         return COLORS[idx];
+    }
+
+    public static int getThemeColor(Context ctx) {
+        int c = getColor(ctx);
+        return Color.rgb(Color.red(c) * 80 / 100,
+                Color.green(c) * 80 / 100, Color.blue(c) * 80 / 100);
     }
 
     public static void setColorIndex(Context ctx, int index) {
