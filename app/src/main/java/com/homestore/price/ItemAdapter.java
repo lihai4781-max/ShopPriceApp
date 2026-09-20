@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.Typeface;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
@@ -145,7 +146,13 @@ public class ItemAdapter extends BaseAdapter {
             String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
             String full = priceText + " ｜ 成本 " + costText + " ｜ 利润 " + profitText;
             SpannableString ss = new SpannableString(full);
+            int cs = full.indexOf("成本");
             int ps = full.indexOf("利润");
+            int smallPx = (int) (13 * fs * context.getResources().getDisplayMetrics().scaledDensity);
+            if (cs >= 0) {
+                ss.setSpan(new AbsoluteSizeSpan(smallPx), cs, full.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
             if (ps >= 0) {
                 int profitColor = it.cost == 0 ? 0xFF999999
                         : (profit < 0 ? 0xFFE53935 : 0xFF444444);
