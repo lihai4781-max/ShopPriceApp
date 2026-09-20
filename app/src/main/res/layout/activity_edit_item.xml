@@ -12,10 +12,10 @@
         <ImageView
             android:id="@+id/ivPhoto"
             android:layout_width="match_parent"
-            android:layout_height="200dp"
+            android:layout_height="260dp"
             android:background="#EEEEEE"
             android:contentDescription="商品图片"
-            android:scaleType="fitCenter" />
+            android:scaleType="centerCrop" />
 
         <TextView
             android:layout_width="match_parent"
