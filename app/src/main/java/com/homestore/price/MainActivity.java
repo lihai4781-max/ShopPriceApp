@@ -281,7 +281,39 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
+        MenuItem costItem = menu.findItem(R.id.action_cost);
+        View v = costItem == null ? null : costItem.getActionView();
+        if (v != null) {
+            costBtn = v.findViewById(R.id.tvCostBtn);
+            if (costBtn != null) {
+                costBtn.setOnClickListener(x -> toggleCost());
+            }
+        }
+        updateCostBtn();
         return true;
+    }
+
+    private TextView costBtn;
+
+    private void toggleCost() {
+        if (adapter.isCostShown()) {
+            adapter.setShowCost(false);
+            Toast.makeText(this, "已隐藏成本价", Toast.LENGTH_SHORT).show();
+        } else {
+            PassDialog.show(this, "查看成本价（密码）", () -> {
+                adapter.setShowCost(true);
+                Toast.makeText(this, "已显示成本价，再点一次「成本价」可隐藏", Toast.LENGTH_LONG).show();
+            });
+        }
+        updateCostBtn();
+    }
+
+    private void updateCostBtn() {
+        if (costBtn != null) {
+            boolean on = adapter != null && adapter.isCostShown();
+            costBtn.setBackgroundResource(on ? R.drawable.bg_cost_on : R.drawable.bg_cost_off);
+            costBtn.setText(on ? "成本价●" : "成本价");
+        }
     }
 
     @Override
@@ -295,78 +327,47 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, TagActivity.class));
             return true;
         }
-        if (id == R.id.action_cost) {
-            if (adapter.isCostShown()) {
-                adapter.setShowCost(false);
-                Toast.makeText(this, "已隐藏成本价", Toast.LENGTH_SHORT).show();
-            } else {
-                PassDialog.show(this, "查看成本价（密码）", () -> {
-                    adapter.setShowCost(true);
-                    Toast.makeText(this, "已显示成本价，再点一次「成本价」可隐藏", Toast.LENGTH_LONG).show();
-                });
-            }
-            return true;
-        }
         if (id == R.id.action_backup) {
-            CharSequence[] opts = {"① 保存备份（覆盖之前保存的）",
+            ChoiceDialog.show(this, "备份 / 恢复", new String[]{
+                    "① 保存备份（覆盖之前保存的）",
                     "② 从备份恢复",
-                    "③ 永久删除备份（需密码）"};
-            new AlertDialog.Builder(this)
-                    .setTitle("备份 / 恢复")
-                    .setItems(opts, (d, w) -> {
-                        if (w == 0) {
-                            doBackup();
-                        } else if (w == 1) {
-                            doRestore();
-                        } else {
-                            PassDialog.show(this, "永久删除备份（密码）", this::doDeleteBackup);
-                        }
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+                    "③ 永久删除备份（需密码）"}, -1, w -> {
+                if (w == 0) {
+                    doBackup();
+                } else if (w == 1) {
+                    doRestore();
+                } else {
+                    PassDialog.show(this, "永久删除备份（密码）", this::doDeleteBackup);
+                }
+            });
             return true;
         }
         if (id == R.id.action_settings) {
-            CharSequence[] opts = {"背景颜色", "字体大小"};
-            new AlertDialog.Builder(this)
-                    .setTitle("设置")
-                    .setItems(opts, (d, w) -> {
-                        if (w == 0) {
-                            showColorDialog();
-                        } else {
-                            showFontDialog();
-                        }
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+            ChoiceDialog.show(this, "设置", new String[]{"背景颜色", "字体大小"}, -1, w -> {
+                if (w == 0) {
+                    showColorDialog();
+                } else {
+                    showFontDialog();
+                }
+            });
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
     private void showColorDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("选择背景颜色")
-                .setSingleChoiceItems(AppPrefs.NAMES, AppPrefs.getColorIndex(this),
-                        (d, w) -> {
-                            AppPrefs.setColorIndex(this, w);
-                            d.dismiss();
-                            recreate();
-                        })
-                .setNegativeButton("取消", null)
-                .show();
+        ChoiceDialog.show(this, "选择背景颜色", AppPrefs.NAMES, AppPrefs.getColorIndex(this),
+                w -> {
+                    AppPrefs.setColorIndex(this, w);
+                    recreate();
+                });
     }
 
     private void showFontDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("选择字体大小")
-                .setSingleChoiceItems(AppPrefs.FONT_NAMES, AppPrefs.getFontIndex(this),
-                        (d, w) -> {
-                            AppPrefs.setFontIndex(this, w);
-                            d.dismiss();
-                            recreate();
-                        })
-                .setNegativeButton("取消", null)
-                .show();
+        ChoiceDialog.show(this, "选择字体大小", AppPrefs.FONT_NAMES, AppPrefs.getFontIndex(this),
+                w -> {
+                    AppPrefs.setFontIndex(this, w);
+                    recreate();
+                });
     }
 }

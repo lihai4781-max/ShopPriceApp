@@ -99,7 +99,9 @@ public class TagItemsActivity extends AppCompatActivity {
         }
         String boss = t.boss == null || t.boss.isEmpty() ? "未填" : t.boss;
         final String phone = t.phone == null ? "" : t.phone.trim();
-        String show = phone.isEmpty() ? "老板：" + boss : "老板：" + boss + " ｜ 电话：" + phone + "（点击拨打）";
+        String show = phone.isEmpty()
+                ? "老板姓名：" + boss + "（点击此处可拨打电话）"
+                : "老板姓名：" + boss + " ｜ 电话：" + phone + "（点击此处拨打）";
         tvBossInfo.setText(show);
         tvBossInfo.setVisibility(View.VISIBLE);
         tvBossInfo.setTextColor(phone.isEmpty() ? 0xFF666666 : 0xFF1565C0);

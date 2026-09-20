@@ -86,8 +86,8 @@ public class EditItemActivity extends AppCompatActivity {
         updateShopText(tvShop);
         tvShop.setOnClickListener(v -> {
             List<Tag> tags = ItemStore.loadTags(this);
-            CharSequence[] names = new CharSequence[tags.size() + 1];
-            names[0] = "不分类";
+            String[] names = new String[tags.size() + 1];
+            names[0] = "不选进货老板";
             int current = 0;
             for (int i = 0; i < tags.size(); i++) {
                 names[i + 1] = tags.get(i).name;
@@ -95,19 +95,14 @@ public class EditItemActivity extends AppCompatActivity {
                     current = i + 1;
                 }
             }
-            new AlertDialog.Builder(this)
-                    .setTitle("选择进货老板")
-                    .setSingleChoiceItems(names, current, (d, w) -> {
-                        if (w == 0) {
-                            item.tagId = null;
-                        } else {
-                            item.tagId = tags.get(w - 1).id;
-                        }
-                        updateShopText(tvShop);
-                        d.dismiss();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+            ChoiceDialog.show(this, "选择进货老板", names, current, w -> {
+                if (w == 0) {
+                    item.tagId = null;
+                } else {
+                    item.tagId = tags.get(w - 1).id;
+                }
+                updateShopText(tvShop);
+            });
         });
 
         final boolean[] costUnlocked = {isNew};
@@ -284,7 +279,7 @@ public class EditItemActivity extends AppCompatActivity {
     }
 
     private void updateShopText(TextView tvShop) {
-        String text = "不分类（点击选择）";
+        String text = "不选进货老板（点击选择）";
         if (item.tagId != null) {
             for (Tag t : ItemStore.loadTags(this)) {
                 if (item.tagId.equals(t.id)) {

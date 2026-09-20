@@ -82,9 +82,9 @@ public class TagAdapter extends BaseAdapter {
         TextView tvCount = v.findViewById(R.id.tvCount);
 
         tvName.setText(t.name);
-        tvBoss.setText(t.boss == null || t.boss.isEmpty() ? "老板：未填" : "老板：" + t.boss);
+        tvBoss.setText(t.boss == null || t.boss.isEmpty() ? "老板姓名：未填" : "老板姓名：" + t.boss);
         final String phone = t.phone == null ? "" : t.phone.trim();
-        tvPhone.setText(phone.isEmpty() ? "电话：未填" : "电话：" + phone + "（点击拨打）");
+        tvPhone.setText(phone.isEmpty() ? "电话：未填" : "电话：" + phone);
         Integer c = counts.get(t.id);
         tvCount.setText((c == null ? 0 : c) + " 个商品");
 

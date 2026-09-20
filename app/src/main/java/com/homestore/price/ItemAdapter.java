@@ -12,6 +12,8 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -128,20 +130,21 @@ public class ItemAdapter extends BaseAdapter {
         String priceText = "价格 " + fmtNum(it.price);
         if (showCost) {
             double profit = it.price - it.cost;
-            String suffix;
-            if (it.cost == 0) {
-                suffix = " ｜ 成本 0 ｜ 利润 —（未填成本）";
-            } else {
-                suffix = " ｜ 成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit);
-            }
-            String full = priceText + suffix;
+            String costText = it.cost == 0 ? "0" : fmtNum(it.cost);
+            String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
+            String full = priceText + " ｜ 成本 " + costText + " ｜ 利润 " + profitText;
             SpannableString ss = new SpannableString(full);
-            if (it.cost != 0 && profit < 0) {
-                int s = full.indexOf("利润");
-                if (s >= 0) {
-                    ss.setSpan(new ForegroundColorSpan(0xFFD32F2F), s, full.length(),
-                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                }
+            int cs = full.indexOf("成本");
+            int ps = full.indexOf("利润");
+            if (cs >= 0 && ps > cs) {
+                ss.setSpan(new ForegroundColorSpan(0xFF1565C0), cs, ps,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+            int profitColor = it.cost == 0 ? 0xFF999999
+                    : (profit < 0 ? 0xFFE53935 : 0xFF1565C0);
+            if (ps >= 0) {
+                ss.setSpan(new ForegroundColorSpan(profitColor), ps, full.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             tvPrice.setText(ss);
         } else {
@@ -150,11 +153,11 @@ public class ItemAdapter extends BaseAdapter {
 
         if (showCost && tg != null) {
             tvTag.setVisibility(View.VISIBLE);
-            tvTag.setText("进货：" + tg.name);
+            tvTag.setText("进货商店：" + tg.name);
             String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;
             String phone = tg.phone == null || tg.phone.isEmpty() ? "未填" : tg.phone;
             tvBoss.setVisibility(View.VISIBLE);
-            tvBoss.setText("老板：" + boss + " ｜ 电话：" + phone);
+            tvBoss.setText("老板姓名：" + boss + " ｜ 电话：" + phone);
         } else {
             tvTag.setVisibility(View.GONE);
             tvBoss.setVisibility(View.GONE);
@@ -166,7 +169,25 @@ public class ItemAdapter extends BaseAdapter {
         } else {
             ivThumb.setImageResource(R.drawable.ic_photo_placeholder);
         }
+        ivThumb.setOnClickListener(x -> showBigImage(it));
         return v;
+    }
+
+    private void showBigImage(Item it) {
+        Bitmap big = ItemStore.decodeThumb(context, it.photo, 900);
+        ImageView iv = new ImageView(context);
+        if (big != null) {
+            iv.setImageBitmap(big);
+        } else {
+            iv.setImageResource(R.drawable.ic_photo_placeholder);
+        }
+        int pad = (int) (16 * context.getResources().getDisplayMetrics().density);
+        iv.setPadding(pad, pad, pad, pad);
+        new AlertDialog.Builder(context)
+                .setTitle(it.name)
+                .setView(iv)
+                .setPositiveButton("关闭", null)
+                .show();
     }
 
     private static String fmtNum(double d) {

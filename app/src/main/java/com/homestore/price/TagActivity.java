@@ -88,18 +88,13 @@ public class TagActivity extends AppCompatActivity {
     }
 
     private void showTagOptions(final Tag t) {
-        CharSequence[] opts = {"编辑", "删除"};
-        new AlertDialog.Builder(this)
-                .setTitle(t.name)
-                .setItems(opts, (d, w) -> {
-                    if (w == 0) {
-                        showTagDialog(t);
-                    } else {
-                        confirmDeleteTag(t);
-                    }
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        ChoiceDialog.show(this, t.name, new String[]{"编辑", "删除"}, -1, w -> {
+            if (w == 0) {
+                showTagDialog(t);
+            } else {
+                confirmDeleteTag(t);
+            }
+        });
     }
 
     private void confirmDeleteTag(final Tag t) {
