@@ -2,6 +2,9 @@ package com.homestore.price;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,9 +12,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -23,7 +24,6 @@ public class ItemAdapter extends BaseAdapter {
     private final List<Item> all = new ArrayList<>();
     private final List<Item> shown = new ArrayList<>();
     private final LayoutInflater inflater;
-    private final SimpleDateFormat fmt = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
     private final Map<String, Tag> tagMap = new HashMap<>();
     private String keyword = "";
     private boolean showCost = false;
@@ -115,49 +115,50 @@ public class ItemAdapter extends BaseAdapter {
         TextView tvName = v.findViewById(R.id.tvName);
         TextView tvTag = v.findViewById(R.id.tvTag);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
-        TextView tvCost = v.findViewById(R.id.tvCost);
         TextView tvBoss = v.findViewById(R.id.tvBoss);
-        TextView tvTime = v.findViewById(R.id.tvTime);
 
         tvName.setTextSize(16 * fs);
         tvTag.setTextSize(12 * fs);
         tvPrice.setTextSize(15 * fs);
-        tvCost.setTextSize(13 * fs);
         tvBoss.setTextSize(12 * fs);
-        tvTime.setTextSize(11 * fs);
 
         tvName.setText(it.name);
         Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
-        if (tg != null) {
-            tvTag.setVisibility(View.VISIBLE);
-            tvTag.setText("进货：" + tg.name);
-        } else {
-            tvTag.setVisibility(View.GONE);
-        }
-        tvPrice.setText("价格 " + fmtNum(it.price));
+
+        String priceText = "价格 " + fmtNum(it.price);
         if (showCost) {
             double profit = it.price - it.cost;
-            tvCost.setVisibility(View.VISIBLE);
+            String suffix;
             if (it.cost == 0) {
-                tvCost.setText("成本 0 ｜ 利润 —（未填成本）");
-                tvCost.setTextColor(0xFF999999);
+                suffix = " ｜ 成本 0 ｜ 利润 —（未填成本）";
             } else {
-                tvCost.setText("成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit));
-                tvCost.setTextColor(profit < 0 ? 0xFFD32F2F : 0xFF777777);
+                suffix = " ｜ 成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit);
             }
-            if (tg != null) {
-                String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;
-                String phone = tg.phone == null || tg.phone.isEmpty() ? "未填" : tg.phone;
-                tvBoss.setVisibility(View.VISIBLE);
-                tvBoss.setText("老板：" + boss + " ｜ 电话：" + phone);
-            } else {
-                tvBoss.setVisibility(View.GONE);
+            String full = priceText + suffix;
+            SpannableString ss = new SpannableString(full);
+            if (it.cost != 0 && profit < 0) {
+                int s = full.indexOf("利润");
+                if (s >= 0) {
+                    ss.setSpan(new ForegroundColorSpan(0xFFD32F2F), s, full.length(),
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
             }
+            tvPrice.setText(ss);
         } else {
-            tvCost.setVisibility(View.GONE);
+            tvPrice.setText(priceText);
+        }
+
+        if (showCost && tg != null) {
+            tvTag.setVisibility(View.VISIBLE);
+            tvTag.setText("进货：" + tg.name);
+            String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;
+            String phone = tg.phone == null || tg.phone.isEmpty() ? "未填" : tg.phone;
+            tvBoss.setVisibility(View.VISIBLE);
+            tvBoss.setText("老板：" + boss + " ｜ 电话：" + phone);
+        } else {
+            tvTag.setVisibility(View.GONE);
             tvBoss.setVisibility(View.GONE);
         }
-        tvTime.setText(fmt.format(new Date(it.updatedAt)));
 
         Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);
         if (bm != null) {

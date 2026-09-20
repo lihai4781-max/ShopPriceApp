@@ -345,18 +345,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showColorDialog() {
-        ChoiceDialog.show(this, "选择背景颜色", AppPrefs.NAMES, AppPrefs.getColorIndex(this),
-                w -> {
-                    AppPrefs.setColorIndex(this, w);
-                    recreate();
-                });
+        new AlertDialog.Builder(this)
+                .setTitle("选择背景颜色")
+                .setSingleChoiceItems(AppPrefs.NAMES, AppPrefs.getColorIndex(this),
+                        (d, w) -> {
+                            AppPrefs.setColorIndex(this, w);
+                            d.dismiss();
+                            recreate();
+                        })
+                .setNegativeButton("取消", null)
+                .show();
     }
 
     private void showFontDialog() {
-        ChoiceDialog.show(this, "选择字体大小", AppPrefs.FONT_NAMES, AppPrefs.getFontIndex(this),
-                w -> {
-                    AppPrefs.setFontIndex(this, w);
-                    recreate();
-                });
+        new AlertDialog.Builder(this)
+                .setTitle("选择字体大小")
+                .setSingleChoiceItems(AppPrefs.FONT_NAMES, AppPrefs.getFontIndex(this),
+                        (d, w) -> {
+                            AppPrefs.setFontIndex(this, w);
+                            d.dismiss();
+                            recreate();
+                        })
+                .setNegativeButton("取消", null)
+                .show();
     }
 }

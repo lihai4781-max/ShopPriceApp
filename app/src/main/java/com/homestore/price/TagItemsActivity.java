@@ -1,9 +1,15 @@
 package com.homestore.price;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -26,11 +32,30 @@ public class TagItemsActivity extends AppCompatActivity {
 
         tagId = getIntent().getStringExtra("tag_id");
         String tagName = getIntent().getStringExtra("tag_name");
-        setTitle(tagName == null ? "店铺商品" : tagName);
+        setTitle(tagName == null ? "商品列表" : tagName);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         adapter = new ItemAdapter(this);
         ListView list = findViewById(R.id.listView);
         list.setAdapter(adapter);
+
+        EditText etSearch = findViewById(R.id.etSearch);
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                adapter.setFilter(s.toString());
+            }
+        });
 
         list.setOnItemClickListener((p, v, pos, id) -> {
             Intent it = new Intent(this, EditItemActivity.class);
@@ -55,6 +80,7 @@ public class TagItemsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        refreshBossInfo();
         List<Item> mine = new ArrayList<>();
         for (Item it : ItemStore.load(this)) {
             if (tagId != null && tagId.equals(it.tagId)) {
@@ -62,7 +88,50 @@ public class TagItemsActivity extends AppCompatActivity {
             }
         }
         adapter.setData(mine);
-        Toast.makeText(this, "共 " + mine.size() + " 个商品", Toast.LENGTH_SHORT).show();
+    }
+
+    private void refreshBossInfo() {
+        TextView tvBossInfo = findViewById(R.id.tvBossInfo);
+        final Tag t = findTag();
+        if (t == null) {
+            tvBossInfo.setVisibility(View.GONE);
+            return;
+        }
+        String boss = t.boss == null || t.boss.isEmpty() ? "未填" : t.boss;
+        final String phone = t.phone == null ? "" : t.phone.trim();
+        String show = phone.isEmpty() ? "老板：" + boss : "老板：" + boss + " ｜ 电话：" + phone + "（点击拨打）";
+        tvBossInfo.setText(show);
+        tvBossInfo.setVisibility(View.VISIBLE);
+        tvBossInfo.setTextColor(phone.isEmpty() ? 0xFF666666 : 0xFF1565C0);
+        tvBossInfo.setOnClickListener(v -> {
+            if (!phone.isEmpty()) {
+                try {
+                    startActivity(new Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone)));
+                } catch (Exception ignored) {
+                }
+            }
+        });
+    }
+
+    private Tag findTag() {
+        if (tagId == null) {
+            return null;
+        }
+        for (Tag t : ItemStore.loadTags(this)) {
+            if (tagId.equals(t.id)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void confirmDelete(Item it) {

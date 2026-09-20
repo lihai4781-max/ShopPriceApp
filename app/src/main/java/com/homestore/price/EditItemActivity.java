@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -36,6 +37,9 @@ public class EditItemActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_item);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         String id = getIntent().getStringExtra("item_id");
         Item target = null;
@@ -82,7 +86,7 @@ public class EditItemActivity extends AppCompatActivity {
         updateShopText(tvShop);
         tvShop.setOnClickListener(v -> {
             List<Tag> tags = ItemStore.loadTags(this);
-            String[] names = new String[tags.size() + 1];
+            CharSequence[] names = new CharSequence[tags.size() + 1];
             names[0] = "不分类";
             int current = 0;
             for (int i = 0; i < tags.size(); i++) {
@@ -91,14 +95,19 @@ public class EditItemActivity extends AppCompatActivity {
                     current = i + 1;
                 }
             }
-            ChoiceDialog.show(this, "选择进货老板", names, current, w -> {
-                if (w == 0) {
-                    item.tagId = null;
-                } else {
-                    item.tagId = tags.get(w - 1).id;
-                }
-                updateShopText(tvShop);
-            });
+            new AlertDialog.Builder(this)
+                    .setTitle("选择进货老板")
+                    .setSingleChoiceItems(names, current, (d, w) -> {
+                        if (w == 0) {
+                            item.tagId = null;
+                        } else {
+                            item.tagId = tags.get(w - 1).id;
+                        }
+                        updateShopText(tvShop);
+                        d.dismiss();
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
         });
 
         final boolean[] costUnlocked = {isNew};
@@ -311,5 +320,14 @@ public class EditItemActivity extends AppCompatActivity {
             return String.valueOf((long) d);
         }
         return String.valueOf(d);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 }
