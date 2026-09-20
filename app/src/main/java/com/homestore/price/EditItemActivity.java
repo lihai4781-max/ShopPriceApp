@@ -10,6 +10,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -51,6 +52,12 @@ public class EditItemActivity extends AppCompatActivity {
         if (item.id == null) {
             item.id = java.util.UUID.randomUUID().toString();
         }
+        if (item.tagId == null) {
+            String fromTag = getIntent().getStringExtra("tag_id");
+            if (fromTag != null && !fromTag.isEmpty()) {
+                item.tagId = fromTag;
+            }
+        }
         final boolean isNew = target == null;
         setTitle(isNew ? "添加商品" : "修改商品");
 
@@ -70,6 +77,34 @@ public class EditItemActivity extends AppCompatActivity {
         etName.setText(item.name);
         etPrice.setText(item.price == 0 ? "" : fmtNum(item.price));
         showPhoto(item.photo);
+
+        final TextView tvShop = findViewById(R.id.tvShop);
+        updateShopText(tvShop);
+        tvShop.setOnClickListener(v -> {
+            List<Tag> tags = ItemStore.loadTags(this);
+            CharSequence[] names = new CharSequence[tags.size() + 1];
+            names[0] = "不分类";
+            int current = 0;
+            for (int i = 0; i < tags.size(); i++) {
+                names[i + 1] = tags.get(i).name;
+                if (item.tagId != null && item.tagId.equals(tags.get(i).id)) {
+                    current = i + 1;
+                }
+            }
+            new AlertDialog.Builder(this)
+                    .setTitle("选择所属店铺")
+                    .setSingleChoiceItems(names, current, (d, w) -> {
+                        if (w == 0) {
+                            item.tagId = null;
+                        } else {
+                            item.tagId = tags.get(w - 1).id;
+                        }
+                        updateShopText(tvShop);
+                        d.dismiss();
+                    })
+                    .setNegativeButton("取消", null)
+                    .show();
+        });
 
         final boolean[] costUnlocked = {isNew};
         if (isNew) {
@@ -242,6 +277,19 @@ public class EditItemActivity extends AppCompatActivity {
         } else {
             ivPhoto.setImageResource(R.drawable.ic_photo_placeholder);
         }
+    }
+
+    private void updateShopText(TextView tvShop) {
+        String text = "不分类（点击选择）";
+        if (item.tagId != null) {
+            for (Tag t : ItemStore.loadTags(this)) {
+                if (item.tagId.equals(t.id)) {
+                    text = t.name;
+                    break;
+                }
+            }
+        }
+        tvShop.setText(text);
     }
 
     private void savePhotoBytes(String id, byte[] bytes) {

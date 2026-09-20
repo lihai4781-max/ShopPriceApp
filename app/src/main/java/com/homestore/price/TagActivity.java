@@ -1,0 +1,154 @@
+package com.homestore.price;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+public class TagActivity extends AppCompatActivity {
+
+    private TagAdapter adapter;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_tag);
+        setTitle("店铺标签");
+
+        adapter = new TagAdapter(this);
+        ListView list = findViewById(R.id.listView);
+        list.setAdapter(adapter);
+
+        list.setOnItemClickListener((p, v, pos, id) -> {
+            Intent it = new Intent(this, TagItemsActivity.class);
+            it.putExtra("tag_id", adapter.getItem(pos).id);
+            it.putExtra("tag_name", adapter.getItem(pos).name);
+            startActivity(it);
+        });
+
+        list.setOnItemLongClickListener((p, v, pos, id) -> {
+            showTagOptions(adapter.getItem(pos));
+            return true;
+        });
+
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(v -> showTagDialog(null));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        reload();
+    }
+
+    private void reload() {
+        List<Tag> tags = ItemStore.loadTags(this);
+        Map<String, Integer> counts = new HashMap<>();
+        for (Item it : ItemStore.load(this)) {
+            if (it.tagId != null) {
+                Integer c = counts.get(it.tagId);
+                counts.put(it.tagId, c == null ? 1 : c + 1);
+            }
+        }
+        adapter.setData(tags, counts);
+    }
+
+    private void showTagOptions(final Tag t) {
+        CharSequence[] opts = {"编辑", "删除"};
+        new AlertDialog.Builder(this)
+                .setTitle(t.name)
+                .setItems(opts, (d, w) -> {
+                    if (w == 0) {
+                        showTagDialog(t);
+                    } else {
+                        confirmDeleteTag(t);
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void confirmDeleteTag(final Tag t) {
+        new AlertDialog.Builder(this)
+                .setTitle("删除店铺标签")
+                .setMessage("删除「" + t.name + "」后，名下商品将变为未分类（商品本身不会被删除）。确定吗？")
+                .setPositiveButton("删除", (d, w) -> {
+                    List<Tag> tags = ItemStore.loadTags(this);
+                    tags.removeIf(x -> t.id != null && t.id.equals(x.id));
+                    List<Item> items = ItemStore.load(this);
+                    for (Item it : items) {
+                        if (t.id != null && t.id.equals(it.tagId)) {
+                            it.tagId = null;
+                            it.updatedAt = System.currentTimeMillis();
+                        }
+                    }
+                    ItemStore.saveAll(this, items, tags);
+                    reload();
+                    Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+
+    private void showTagDialog(final Tag existing) {
+        View v = LayoutInflater.from(this).inflate(R.layout.dialog_tag, null);
+        final EditText etName = v.findViewById(R.id.etName);
+        final EditText etBoss = v.findViewById(R.id.etBoss);
+        final EditText etPhone = v.findViewById(R.id.etPhone);
+
+        if (existing != null) {
+            etName.setText(existing.name);
+            etBoss.setText(existing.boss);
+            etPhone.setText(existing.phone);
+        }
+
+        final Tag t = existing != null ? existing : new Tag();
+        if (t.id == null) {
+            t.id = UUID.randomUUID().toString();
+        }
+
+        AlertDialog dlg = new AlertDialog.Builder(this)
+                .setTitle(existing == null ? "添加店铺标签" : "修改店铺标签")
+                .setView(v)
+                .setPositiveButton("保存", null)
+                .setNegativeButton("取消", null)
+                .create();
+        dlg.setOnShowListener(di -> {
+            Button ok = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (ok != null) {
+                ok.setOnClickListener(arg -> {
+                    String name = etName.getText().toString().trim();
+                    if (name.isEmpty()) {
+                        Toast.makeText(this, "请输入店铺名称", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    t.name = name;
+                    t.boss = etBoss.getText().toString().trim();
+                    t.phone = etPhone.getText().toString().trim();
+                    t.updatedAt = System.currentTimeMillis();
+                    List<Tag> tags = ItemStore.loadTags(this);
+                    tags.removeIf(x -> t.id != null && t.id.equals(x.id));
+                    tags.add(t);
+                    ItemStore.saveTags(this, tags);
+                    dlg.dismiss();
+                    reload();
+                });
+            }
+        });
+        dlg.show();
+    }
+}

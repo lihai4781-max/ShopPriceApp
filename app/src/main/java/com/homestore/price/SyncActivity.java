@@ -74,7 +74,7 @@ public class SyncActivity extends AppCompatActivity {
             return;
         }
         busy = true;
-        String myJson = ItemStore.toJson(ItemStore.load(this));
+        String myJson = ItemStore.toJsonAll(ItemStore.load(this), ItemStore.loadTags(this));
         BtSync.server(adapter, myJson, ItemStore.photosDir(this), new BtSync.Listener() {
             @Override
             public void onLog(String msg) {
@@ -86,6 +86,7 @@ public class SyncActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     ItemStore.savePhotos(SyncActivity.this, atts);
                     ItemStore.save(SyncActivity.this, ItemStore.fromJson(mergedJson));
+                    ItemStore.saveTags(SyncActivity.this, ItemStore.tagsFromJson(mergedJson));
                     busy = false;
                     Toast.makeText(SyncActivity.this, "同步完成，已保存", Toast.LENGTH_SHORT).show();
                 });
@@ -129,7 +130,7 @@ public class SyncActivity extends AppCompatActivity {
             return;
         }
         busy = true;
-        String myJson = ItemStore.toJson(ItemStore.load(this));
+        String myJson = ItemStore.toJsonAll(ItemStore.load(this), ItemStore.loadTags(this));
         BtSync.client(adapter, device, myJson, ItemStore.photosDir(this), new BtSync.Listener() {
             @Override
             public void onLog(String msg) {
@@ -141,6 +142,7 @@ public class SyncActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     ItemStore.savePhotos(SyncActivity.this, atts);
                     ItemStore.save(SyncActivity.this, ItemStore.fromJson(mergedJson));
+                    ItemStore.saveTags(SyncActivity.this, ItemStore.tagsFromJson(mergedJson));
                     busy = false;
                     Toast.makeText(SyncActivity.this, "同步完成，已保存", Toast.LENGTH_SHORT).show();
                 });

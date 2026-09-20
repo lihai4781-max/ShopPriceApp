@@ -9,10 +9,11 @@ import android.media.ExifInterface;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -50,26 +51,28 @@ public class ItemStore {
     }
 
     public static List<Item> load(Context ctx) {
-        try (java.io.BufferedReader r = new java.io.BufferedReader(
-                new java.io.InputStreamReader(new FileInputStream(dataFile(ctx)), StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = r.readLine()) != null) {
-                sb.append(line);
-            }
-            return fromJson(sb.toString());
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+        return fromJson(readFileText(dataFile(ctx)));
+    }
+
+    public static List<Tag> loadTags(Context ctx) {
+        return tagsFromJson(readFileText(dataFile(ctx)));
     }
 
     public static boolean save(Context ctx, List<Item> items) {
+        return saveAll(ctx, items, loadTags(ctx));
+    }
+
+    public static boolean saveTags(Context ctx, List<Tag> tags) {
+        return saveAll(ctx, load(ctx), tags);
+    }
+
+    public static boolean saveAll(Context ctx, List<Item> items, List<Tag> tags) {
         try {
             File dir = ctx.getFilesDir();
             File f = dataFile(ctx);
             File tmp = new File(dir, "shop_data.tmp");
             try (Writer w = new OutputStreamWriter(new FileOutputStream(tmp), StandardCharsets.UTF_8)) {
-                w.write(toJson(items));
+                w.write(toJsonAll(items, tags));
             }
             if (f.exists() && !f.delete()) {
                 return false;
@@ -80,19 +83,44 @@ public class ItemStore {
         }
     }
 
-    public static String toJson(List<Item> items) {
+    private static String readFileText(File f) {
+        try (BufferedReader r = new BufferedReader(
+                new InputStreamReader(new FileInputStream(f), StandardCharsets.UTF_8))) {
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = r.readLine()) != null) {
+                sb.append(line);
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    public static String toJsonAll(List<Item> items, List<Tag> tags) {
         try {
             JSONArray arr = new JSONArray();
             for (Item it : items) {
                 arr.put(it.toJson());
             }
+            JSONArray tarr = new JSONArray();
+            if (tags != null) {
+                for (Tag t : tags) {
+                    tarr.put(t.toJson());
+                }
+            }
             JSONObject root = new JSONObject();
             root.put("version", 1);
             root.put("items", arr);
+            root.put("tags", tarr);
             return root.toString();
         } catch (Exception e) {
-            return "{\"version\":1,\"items\":[]}";
+            return "{\"version\":1,\"items\":[],\"tags\":[]}";
         }
+    }
+
+    public static String toJson(List<Item> items) {
+        return toJsonAll(items, new ArrayList<Tag>());
     }
 
     public static List<Item> fromJson(String s) {
@@ -103,6 +131,21 @@ public class ItemStore {
             if (arr != null) {
                 for (int i = 0; i < arr.length(); i++) {
                     list.add(Item.fromJson(arr.getJSONObject(i)));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return list;
+    }
+
+    public static List<Tag> tagsFromJson(String s) {
+        List<Tag> list = new ArrayList<>();
+        try {
+            JSONObject root = new JSONObject(s);
+            JSONArray arr = root.optJSONArray("tags");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    list.add(Tag.fromJson(arr.getJSONObject(i)));
                 }
             }
         } catch (Exception ignored) {
@@ -129,6 +172,33 @@ public class ItemStore {
         List<Item> out = new ArrayList<>(map.values());
         out.sort((x, y) -> Long.compare(y.updatedAt, x.updatedAt));
         return out;
+    }
+
+    public static List<Tag> mergeTags(List<Tag> a, List<Tag> b) {
+        Map<String, Tag> map = new HashMap<>();
+        for (Tag t : a) {
+            if (t.id != null) {
+                map.put(t.id, t);
+            }
+        }
+        for (Tag t : b) {
+            if (t.id == null) {
+                continue;
+            }
+            Tag old = map.get(t.id);
+            if (old == null || t.updatedAt > old.updatedAt) {
+                map.put(t.id, t);
+            }
+        }
+        List<Tag> out = new ArrayList<>(map.values());
+        out.sort((x, y) -> Long.compare(y.updatedAt, x.updatedAt));
+        return out;
+    }
+
+    public static String mergeAll(String a, String b) {
+        List<Item> items = merge(fromJson(a), fromJson(b));
+        List<Tag> tags = mergeTags(tagsFromJson(a), tagsFromJson(b));
+        return toJsonAll(items, tags);
     }
 
     public static void deletePhoto(Context ctx, String name) {

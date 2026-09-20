@@ -12,8 +12,10 @@ import android.widget.TextView;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class ItemAdapter extends BaseAdapter {
 
@@ -22,12 +24,25 @@ public class ItemAdapter extends BaseAdapter {
     private final List<Item> shown = new ArrayList<>();
     private final LayoutInflater inflater;
     private final SimpleDateFormat fmt = new SimpleDateFormat("MM-dd HH:mm", Locale.getDefault());
+    private final Map<String, Tag> tagMap = new HashMap<>();
     private String keyword = "";
     private boolean showCost = false;
 
     public ItemAdapter(Context context) {
         this.context = context;
         this.inflater = LayoutInflater.from(context);
+    }
+
+    public void setTags(List<Tag> tags) {
+        tagMap.clear();
+        if (tags != null) {
+            for (Tag t : tags) {
+                if (t.id != null) {
+                    tagMap.put(t.id, t);
+                }
+            }
+        }
+        notifyDataSetChanged();
     }
 
     public boolean isCostShown() {
@@ -56,10 +71,17 @@ public class ItemAdapter extends BaseAdapter {
 
     private void refilter() {
         shown.clear();
-        String kw = keyword;
+        String kw = keyword.toLowerCase(Locale.getDefault());
         for (Item it : all) {
-            if (kw.isEmpty() || (it.name != null && it.name.toLowerCase(Locale.getDefault())
-                    .contains(kw.toLowerCase(Locale.getDefault())))) {
+            boolean match = kw.isEmpty()
+                    || (it.name != null
+                    && it.name.toLowerCase(Locale.getDefault()).contains(kw));
+            if (!match && !kw.isEmpty()) {
+                Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
+                match = tg != null && tg.name != null
+                        && tg.name.toLowerCase(Locale.getDefault()).contains(kw);
+            }
+            if (match) {
                 shown.add(it);
             }
         }
@@ -91,19 +113,34 @@ public class ItemAdapter extends BaseAdapter {
         float fs = AppPrefs.getFontScale(context);
         ImageView ivThumb = v.findViewById(R.id.ivThumb);
         TextView tvName = v.findViewById(R.id.tvName);
+        TextView tvTag = v.findViewById(R.id.tvTag);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
         TextView tvCost = v.findViewById(R.id.tvCost);
         TextView tvTime = v.findViewById(R.id.tvTime);
 
         tvName.setTextSize(16 * fs);
+        tvTag.setTextSize(12 * fs);
         tvPrice.setTextSize(15 * fs);
         tvCost.setTextSize(13 * fs);
         tvTime.setTextSize(11 * fs);
 
         tvName.setText(it.name);
+        Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
+        if (tg != null) {
+            tvTag.setVisibility(View.VISIBLE);
+            tvTag.setText("店：" + tg.name);
+        } else {
+            tvTag.setVisibility(View.GONE);
+        }
         tvPrice.setText("价格 " + fmtNum(it.price));
-        tvCost.setText("成本 " + fmtNum(it.cost));
-        tvCost.setVisibility(showCost ? View.VISIBLE : View.GONE);
+        if (showCost) {
+            double profit = it.price - it.cost;
+            tvCost.setVisibility(View.VISIBLE);
+            tvCost.setText("成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit));
+            tvCost.setTextColor(profit < 0 ? 0xFFD32F2F : 0xFF777777);
+        } else {
+            tvCost.setVisibility(View.GONE);
+        }
         tvTime.setText(fmt.format(new Date(it.updatedAt)));
 
         Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);

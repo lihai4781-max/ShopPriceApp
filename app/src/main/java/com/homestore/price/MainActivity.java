@@ -93,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         applyTheme();
+        adapter.setTags(ItemStore.loadTags(this));
         adapter.setData(ItemStore.load(this));
         updateSummary();
     }
@@ -113,7 +114,8 @@ public class MainActivity extends AppCompatActivity {
                     != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
-            byte[] data = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
+            byte[] data = BackupUtil.packToZip(
+                    ItemStore.toJsonAll(ItemStore.load(this), ItemStore.loadTags(this)),
                     ItemStore.loadAllPhotos(this));
             BackupUtil.save(this, data);
         } catch (Exception ignored) {
@@ -159,7 +161,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         try {
-            byte[] data = BackupUtil.packToZip(ItemStore.toJson(ItemStore.load(this)),
+            byte[] data = BackupUtil.packToZip(
+                    ItemStore.toJsonAll(ItemStore.load(this), ItemStore.loadTags(this)),
                     ItemStore.loadAllPhotos(this));
             BackupUtil.save(this, data);
             Toast.makeText(this, "备份成功！位置：内部存储根目录/ShopPriceBackup/"
@@ -186,6 +189,9 @@ public class MainActivity extends AppCompatActivity {
                 ItemStore.fromJson(d.json));
         ItemStore.save(this, merged);
         ItemStore.savePhotos(this, d.atts);
+        ItemStore.saveTags(this,
+                ItemStore.mergeTags(ItemStore.loadTags(this), ItemStore.tagsFromJson(d.json)));
+        adapter.setTags(ItemStore.loadTags(this));
         adapter.setData(merged);
         updateSummary();
         Toast.makeText(this, "恢复完成，共 " + merged.size() + " 个商品", Toast.LENGTH_LONG).show();
@@ -280,6 +286,10 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
         if (id == R.id.action_sync) {
             startActivity(new Intent(this, SyncActivity.class));
+            return true;
+        }
+        if (id == R.id.action_tag) {
+            startActivity(new Intent(this, TagActivity.class));
             return true;
         }
         if (id == R.id.action_cost) {
