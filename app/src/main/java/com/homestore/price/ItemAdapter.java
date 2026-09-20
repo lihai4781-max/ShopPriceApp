@@ -295,8 +295,8 @@ public class ItemAdapter extends BaseAdapter {
         dlg.show();
     }
 
-    private static void addLine(android.widget.LinearLayout box, android.content.Context ctx,
-                                String text, int color, float size, boolean bold) {
+    private static TextView addLine(android.widget.LinearLayout box, android.content.Context ctx,
+                                    String text, int color, float size, boolean bold) {
         TextView tv = new TextView(ctx);
         tv.setText(text);
         tv.setTextSize(size);
@@ -305,6 +305,7 @@ public class ItemAdapter extends BaseAdapter {
         tv.setPadding(0, (int) (6 * ctx.getResources().getDisplayMetrics().density), 0,
                 (int) (6 * ctx.getResources().getDisplayMetrics().density));
         box.addView(tv);
+        return tv;
     }
 
     private static double round2(double d) {
