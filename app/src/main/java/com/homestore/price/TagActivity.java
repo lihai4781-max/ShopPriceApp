@@ -27,11 +27,27 @@ public class TagActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_tag);
-        setTitle("店铺标签");
+        setTitle("进货老板");
 
         adapter = new TagAdapter(this);
         ListView list = findViewById(R.id.listView);
         list.setAdapter(adapter);
+
+        EditText etSearch = findViewById(R.id.etSearch);
+        etSearch.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                adapter.setFilter(s.toString());
+            }
+        });
 
         list.setOnItemClickListener((p, v, pos, id) -> {
             Intent it = new Intent(this, TagItemsActivity.class);
@@ -84,7 +100,7 @@ public class TagActivity extends AppCompatActivity {
 
     private void confirmDeleteTag(final Tag t) {
         new AlertDialog.Builder(this)
-                .setTitle("删除店铺标签")
+                .setTitle("删除进货老板")
                 .setMessage("删除「" + t.name + "」后，名下商品将变为未分类（商品本身不会被删除）。确定吗？")
                 .setPositiveButton("删除", (d, w) -> {
                     List<Tag> tags = ItemStore.loadTags(this);
@@ -122,7 +138,7 @@ public class TagActivity extends AppCompatActivity {
         }
 
         AlertDialog dlg = new AlertDialog.Builder(this)
-                .setTitle(existing == null ? "添加店铺标签" : "修改店铺标签")
+                .setTitle(existing == null ? "添加进货老板" : "修改进货老板")
                 .setView(v)
                 .setPositiveButton("保存", null)
                 .setNegativeButton("取消", null)

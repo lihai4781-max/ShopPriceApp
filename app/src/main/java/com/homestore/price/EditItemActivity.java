@@ -82,7 +82,7 @@ public class EditItemActivity extends AppCompatActivity {
         updateShopText(tvShop);
         tvShop.setOnClickListener(v -> {
             List<Tag> tags = ItemStore.loadTags(this);
-            CharSequence[] names = new CharSequence[tags.size() + 1];
+            String[] names = new String[tags.size() + 1];
             names[0] = "不分类";
             int current = 0;
             for (int i = 0; i < tags.size(); i++) {
@@ -91,19 +91,14 @@ public class EditItemActivity extends AppCompatActivity {
                     current = i + 1;
                 }
             }
-            new AlertDialog.Builder(this)
-                    .setTitle("选择所属店铺")
-                    .setSingleChoiceItems(names, current, (d, w) -> {
-                        if (w == 0) {
-                            item.tagId = null;
-                        } else {
-                            item.tagId = tags.get(w - 1).id;
-                        }
-                        updateShopText(tvShop);
-                        d.dismiss();
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
+            ChoiceDialog.show(this, "选择进货老板", names, current, w -> {
+                if (w == 0) {
+                    item.tagId = null;
+                } else {
+                    item.tagId = tags.get(w - 1).id;
+                }
+                updateShopText(tvShop);
+            });
         });
 
         final boolean[] costUnlocked = {isNew};

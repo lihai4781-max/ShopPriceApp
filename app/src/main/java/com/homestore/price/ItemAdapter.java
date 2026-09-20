@@ -116,19 +116,21 @@ public class ItemAdapter extends BaseAdapter {
         TextView tvTag = v.findViewById(R.id.tvTag);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
         TextView tvCost = v.findViewById(R.id.tvCost);
+        TextView tvBoss = v.findViewById(R.id.tvBoss);
         TextView tvTime = v.findViewById(R.id.tvTime);
 
         tvName.setTextSize(16 * fs);
         tvTag.setTextSize(12 * fs);
         tvPrice.setTextSize(15 * fs);
         tvCost.setTextSize(13 * fs);
+        tvBoss.setTextSize(12 * fs);
         tvTime.setTextSize(11 * fs);
 
         tvName.setText(it.name);
         Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
         if (tg != null) {
             tvTag.setVisibility(View.VISIBLE);
-            tvTag.setText("店：" + tg.name);
+            tvTag.setText("进货：" + tg.name);
         } else {
             tvTag.setVisibility(View.GONE);
         }
@@ -138,8 +140,17 @@ public class ItemAdapter extends BaseAdapter {
             tvCost.setVisibility(View.VISIBLE);
             tvCost.setText("成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit));
             tvCost.setTextColor(profit < 0 ? 0xFFD32F2F : 0xFF777777);
+            if (tg != null) {
+                String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;
+                String phone = tg.phone == null || tg.phone.isEmpty() ? "未填" : tg.phone;
+                tvBoss.setVisibility(View.VISIBLE);
+                tvBoss.setText("老板：" + boss + " ｜ 电话：" + phone);
+            } else {
+                tvBoss.setVisibility(View.GONE);
+            }
         } else {
             tvCost.setVisibility(View.GONE);
+            tvBoss.setVisibility(View.GONE);
         }
         tvTime.setText(fmt.format(new Date(it.updatedAt)));
 
