@@ -9,7 +9,7 @@
 
     <item
         android:id="@+id/action_tag"
-        android:title="标签"
+        android:title="进货老板"
         app:showAsAction="always" />
 
     <item
