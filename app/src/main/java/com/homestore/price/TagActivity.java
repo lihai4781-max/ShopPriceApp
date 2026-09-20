@@ -98,10 +98,9 @@ public class TagActivity extends AppCompatActivity {
     }
 
     private void confirmDeleteTag(final Tag t) {
-        new AlertDialog.Builder(this)
-                .setTitle("删除进货老板")
-                .setMessage("删除「" + t.name + "」后，名下商品将变为未分类（商品本身不会被删除）。确定吗？")
-                .setPositiveButton("删除", (d, w) -> {
+        ChoiceDialog.confirm(this, "删除进货老板",
+                "删除「" + t.name + "」后，名下商品将变为未分类（商品本身不会被删除）。确定吗？",
+                "删除", () -> {
                     List<Tag> tags = ItemStore.loadTags(this);
                     tags.removeIf(x -> t.id != null && t.id.equals(x.id));
                     List<Item> items = ItemStore.load(this);
@@ -114,9 +113,7 @@ public class TagActivity extends AppCompatActivity {
                     ItemStore.saveAll(this, items, tags);
                     reload();
                     Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+                });
     }
 
     private void showTagDialog(final Tag existing) {
@@ -144,7 +141,9 @@ public class TagActivity extends AppCompatActivity {
                 .create();
         dlg.setOnShowListener(di -> {
             Button ok = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
+            float fs = AppPrefs.getFontScale(this);
             if (ok != null) {
+                ok.setTextSize(16 * fs);
                 ok.setOnClickListener(arg -> {
                     String name = etName.getText().toString().trim();
                     if (name.isEmpty()) {
@@ -162,6 +161,10 @@ public class TagActivity extends AppCompatActivity {
                     dlg.dismiss();
                     reload();
                 });
+            }
+            Button neg = dlg.getButton(AlertDialog.BUTTON_NEGATIVE);
+            if (neg != null) {
+                neg.setTextSize(16 * fs);
             }
         });
         dlg.show();

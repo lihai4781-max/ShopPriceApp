@@ -2,9 +2,11 @@ package com.homestore.price;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Typeface;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -135,7 +137,12 @@ public class ItemAdapter extends BaseAdapter {
             String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
             String full = priceText + " ｜ 成本 " + costText + " ｜ 利润 " + profitText;
             SpannableString ss = new SpannableString(full);
+            int cs = full.indexOf("成本");
             int ps = full.indexOf("利润");
+            if (cs >= 0) {
+                ss.setSpan(new StyleSpan(Typeface.NORMAL), cs, full.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
             if (ps >= 0) {
                 int profitColor = it.cost == 0 ? 0xFF999999
                         : (profit < 0 ? 0xFFE53935 : 0xFF444444);
@@ -179,11 +186,13 @@ public class ItemAdapter extends BaseAdapter {
         }
         int pad = (int) (16 * context.getResources().getDisplayMetrics().density);
         iv.setPadding(pad, pad, pad, pad);
-        new AlertDialog.Builder(context)
+        AlertDialog dlg = new AlertDialog.Builder(context)
                 .setTitle(it.name)
                 .setView(iv)
                 .setPositiveButton("关闭", null)
-                .show();
+                .create();
+        ChoiceDialog.enlarge(context, dlg);
+        dlg.show();
     }
 
     private static String fmtNum(double d) {

@@ -14,7 +14,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -128,21 +127,18 @@ public class EditItemActivity extends AppCompatActivity {
 
         ivPhoto.setOnClickListener(v -> {
             CharSequence[] opts = {"拍照", "从相册选择", "删除照片"};
-            new AlertDialog.Builder(this)
-                    .setTitle("商品图片")
-                    .setItems(opts, (d, w) -> {
-                        if (w == 0) {
-                            takePhoto(item);
-                        } else if (w == 1) {
-                            pickPhoto();
-                        } else {
-                            pendingPhoto = null;
-                            removePhoto = true;
-                            ivPhoto.setImageResource(R.drawable.ic_photo_placeholder);
-                            Toast.makeText(this, "将在保存后生效", Toast.LENGTH_SHORT).show();
-                        }
-                    })
-                    .show();
+            ChoiceDialog.showMenu(this, "商品图片", opts, (d, w) -> {
+                if (w == 0) {
+                    takePhoto(item);
+                } else if (w == 1) {
+                    pickPhoto();
+                } else {
+                    pendingPhoto = null;
+                    removePhoto = true;
+                    ivPhoto.setImageResource(R.drawable.ic_photo_placeholder);
+                    Toast.makeText(this, "将在保存后生效", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         findViewById(R.id.btnSave).setOnClickListener(v -> {
@@ -176,23 +172,18 @@ public class EditItemActivity extends AppCompatActivity {
             btnDelete.setVisibility(View.GONE);
         } else {
             btnDelete.setOnClickListener(v -> PassDialog.show(this, "删除商品需要密码", () ->
-                    new AlertDialog.Builder(this)
-                            .setTitle("删除商品")
-                            .setMessage("确定删除「" + item.name + "」吗？")
-                            .setPositiveButton("删除", (d, w) -> {
-                                List<Item> all = ItemStore.load(this);
-                                for (Item it : all) {
-                                    if (it.id != null && it.id.equals(item.id)) {
-                                        ItemStore.deletePhoto(this, it.photo);
-                                    }
-                                }
-                                all.removeIf(x -> x.id != null && x.id.equals(item.id));
-                                ItemStore.save(this, all);
-                                Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-                                finish();
-                            })
-                            .setNegativeButton("取消", null)
-                            .show()));
+                    ChoiceDialog.confirm(this, "删除商品", "确定删除「" + item.name + "」吗？", "删除", () -> {
+                        List<Item> all = ItemStore.load(this);
+                        for (Item it : all) {
+                            if (it.id != null && it.id.equals(item.id)) {
+                                ItemStore.deletePhoto(this, it.photo);
+                            }
+                        }
+                        all.removeIf(x -> x.id != null && x.id.equals(item.id));
+                        ItemStore.save(this, all);
+                        Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+                        finish();
+                    })));
         }
     }
 

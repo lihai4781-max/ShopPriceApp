@@ -13,7 +13,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -183,28 +182,23 @@ public class TagItemsActivity extends AppCompatActivity {
     }
 
     private void confirmDelete(Item it) {
-        new AlertDialog.Builder(this)
-                .setTitle("删除商品")
-                .setMessage("确定删除「" + it.name + "」吗？")
-                .setPositiveButton("删除", (d, w) -> {
-                    List<Item> items = ItemStore.load(this);
-                    for (Item x : items) {
-                        if (it.id != null && it.id.equals(x.id)) {
-                            ItemStore.deletePhoto(this, x.photo);
-                        }
-                    }
-                    items.removeIf(x -> it.id != null && it.id.equals(x.id));
-                    ItemStore.save(this, items);
-                    List<Item> mine = new ArrayList<>();
-                    for (Item x : ItemStore.load(this)) {
-                        if (tagId != null && tagId.equals(x.tagId)) {
-                            mine.add(x);
-                        }
-                    }
-                    adapter.setData(mine);
-                    Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        ChoiceDialog.confirm(this, "删除商品", "确定删除「" + it.name + "」吗？", "删除", () -> {
+            List<Item> items = ItemStore.load(this);
+            for (Item x : items) {
+                if (it.id != null && it.id.equals(x.id)) {
+                    ItemStore.deletePhoto(this, x.photo);
+                }
+            }
+            items.removeIf(x -> it.id != null && it.id.equals(x.id));
+            ItemStore.save(this, items);
+            List<Item> mine = new ArrayList<>();
+            for (Item x : ItemStore.load(this)) {
+                if (tagId != null && tagId.equals(x.tagId)) {
+                    mine.add(x);
+                }
+            }
+            adapter.setData(mine);
+            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+        });
     }
 }

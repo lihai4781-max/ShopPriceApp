@@ -4,13 +4,17 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.text.Editable;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.TextWatcher;
+import android.text.style.StyleSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,7 +23,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -40,6 +43,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+            SpannableString title = new SpannableString("商品价格");
+            title.setSpan(new StyleSpan(Typeface.BOLD), 0, title.length(),
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            getSupportActionBar().setTitle(title);
         }
 
         adapter = new ItemAdapter(this);
@@ -259,24 +266,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void confirmDelete(Item it) {
-        new AlertDialog.Builder(this)
-                .setTitle("删除商品")
-                .setMessage("确定删除「" + it.name + "」吗？")
-                .setPositiveButton("删除", (d, w) -> {
-                    List<Item> items = ItemStore.load(this);
-                    for (Item x : items) {
-                        if (it.id != null && it.id.equals(x.id)) {
-                            ItemStore.deletePhoto(this, x.photo);
-                        }
-                    }
-                    items.removeIf(x -> it.id != null && it.id.equals(x.id));
-                    ItemStore.save(this, items);
-                    adapter.setData(items);
-                    updateSummary();
-                    Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("取消", null)
-                .show();
+        ChoiceDialog.confirm(this, "删除商品", "确定删除「" + it.name + "」吗？", "删除", () -> {
+            List<Item> items = ItemStore.load(this);
+            for (Item x : items) {
+                if (it.id != null && it.id.equals(x.id)) {
+                    ItemStore.deletePhoto(this, x.photo);
+                }
+            }
+            items.removeIf(x -> it.id != null && it.id.equals(x.id));
+            ItemStore.save(this, items);
+            adapter.setData(items);
+            updateSummary();
+            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
+        });
     }
 
     @Override

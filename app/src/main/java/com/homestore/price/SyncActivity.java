@@ -13,7 +13,6 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
@@ -122,11 +121,7 @@ public class SyncActivity extends AppCompatActivity {
                 names[i] = list.get(i).getAddress();
             }
         }
-        new AlertDialog.Builder(this)
-                .setTitle("选择要发送到的手机")
-                .setItems(names, (d, w) -> sendTo(list.get(w)))
-                .setNegativeButton("取消", null)
-                .show();
+        ChoiceDialog.showMenu(this, "选择要发送到的手机", names, (d, w) -> sendTo(list.get(w)));
     }
 
     private void sendTo(BluetoothDevice device) {

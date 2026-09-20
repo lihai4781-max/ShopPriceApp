@@ -34,8 +34,10 @@ public class PassDialog {
                 .setNegativeButton("取消", null)
                 .create();
         dlg.setOnShowListener(d -> {
+            float fs = AppPrefs.getFontScale(ctx);
             Button ok = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
             if (ok != null) {
+                ok.setTextSize(16 * fs);
                 ok.setOnClickListener(v -> {
                     if (PASSWORD.equals(et.getText().toString())) {
                         dlg.dismiss();
@@ -45,6 +47,10 @@ public class PassDialog {
                         Toast.makeText(ctx, "密码错误", Toast.LENGTH_SHORT).show();
                     }
                 });
+            }
+            Button neg = dlg.getButton(AlertDialog.BUTTON_NEGATIVE);
+            if (neg != null) {
+                neg.setTextSize(16 * fs);
             }
         });
         dlg.show();
