@@ -33,11 +33,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="商品名称"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etName"
@@ -57,11 +58,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="进货老板"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <TextView
                 android:id="@+id/tvShop"
@@ -71,7 +73,7 @@
                 android:padding="10dp"
                 android:text="不分类（点击选择）"
                 android:textColor="#1565C0"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
         </LinearLayout>
 
         <LinearLayout
@@ -82,11 +84,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="成本价(元)"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etCost"
@@ -105,11 +108,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="售价(元)"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etPrice"
@@ -128,11 +132,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="每箱数量"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etBoxQty"
@@ -152,11 +157,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="整箱成本"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etBoxCost"
@@ -176,11 +182,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="整箱售价"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etBoxPrice"

@@ -16,11 +16,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="店铺名称"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etName"
@@ -40,11 +41,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="老板姓名"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etBoss"
@@ -64,11 +66,12 @@
             android:orientation="horizontal">
 
             <TextView
-                android:layout_width="92dp"
+                android:layout_width="100dp"
+                android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"
                 android:text="手机联系"
                 android:textColor="#555555"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
 
             <EditText
                 android:id="@+id/etPhone"
