@@ -144,13 +144,20 @@ public class TagActivity extends AppCompatActivity {
             float fs = AppPrefs.getFontScale(this);
             if (ok != null) {
                 ok.setTextSize(16 * fs);
-                ok.setOnClickListener(arg -> {
-                    String name = etName.getText().toString().trim();
-                    if (name.isEmpty()) {
-                        Toast.makeText(this, "请输入店铺名称", Toast.LENGTH_SHORT).show();
+            ok.setOnClickListener(arg -> {
+                String name = etName.getText().toString().trim();
+                if (name.isEmpty()) {
+                    Toast.makeText(this, "请输入店铺名称", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                List<Tag> exist = ItemStore.loadTags(this);
+                for (Tag x : exist) {
+                    if (name.equals(x.name) && (existing == null || !x.id.equals(t.id))) {
+                        Toast.makeText(this, "进货商店「" + name + "」已存在，名称不能重复", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    t.name = name;
+                }
+                t.name = name;
                     t.boss = etBoss.getText().toString().trim();
                     t.phone = etPhone.getText().toString().trim();
                     t.updatedAt = System.currentTimeMillis();
