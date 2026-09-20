@@ -8,9 +8,14 @@
         app:showAsAction="always" />
 
     <item
+        android:id="@+id/action_tag"
+        android:title="标签"
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/action_sync"
         android:title="蓝牙同步"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_backup"
