@@ -61,7 +61,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         list.setOnItemLongClickListener((parent, view, position, id) -> {
-            ItemAdapter.showDetail(this, adapter.getItem(position), AppPrefs.isCostShown(this));
+            ItemAdapter.showDetail(this, adapter.getItem(position),
+                    AppPrefs.isCostShown(this), true);
             return true;
         });
 

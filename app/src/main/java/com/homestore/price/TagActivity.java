@@ -118,6 +118,8 @@ public class TagActivity extends AppCompatActivity {
 
     private void showTagDialog(final Tag existing) {
         View v = LayoutInflater.from(this).inflate(R.layout.dialog_tag, null);
+        float fs = AppPrefs.getFontScale(this);
+        AppPrefs.scaleLabels(v, fs);
         final EditText etName = v.findViewById(R.id.etName);
         final EditText etBoss = v.findViewById(R.id.etBoss);
         final EditText etPhone = v.findViewById(R.id.etPhone);
@@ -133,9 +135,13 @@ public class TagActivity extends AppCompatActivity {
             t.id = UUID.randomUUID().toString();
         }
 
+        android.widget.LinearLayout wrap = new android.widget.LinearLayout(this);
+        wrap.setOrientation(android.widget.LinearLayout.VERTICAL);
+        wrap.addView(ChoiceDialog.makeTitle(this, existing == null ? "添加进货老板" : "修改进货老板", fs));
+        wrap.addView(v);
+
         AlertDialog dlg = new AlertDialog.Builder(this)
-                .setTitle(existing == null ? "添加进货老板" : "修改进货老板")
-                .setView(v)
+                .setView(wrap)
                 .setPositiveButton("保存", null)
                 .setNegativeButton("取消", null)
                 .create();

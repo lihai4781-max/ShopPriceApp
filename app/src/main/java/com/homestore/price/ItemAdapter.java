@@ -138,7 +138,7 @@ public class ItemAdapter extends BaseAdapter {
         tvName.setText(it.name);
         Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
 
-        String priceText = "价格 " + fmtNum(it.price);
+        String priceText = "售价 " + fmtNum(it.price);
         tvPrice.setTextColor(AppPrefs.getThemeColor(context));
         if (showCost) {
             double profit = it.price - it.cost;
@@ -214,49 +214,55 @@ public class ItemAdapter extends BaseAdapter {
         }
         int pad = (int) (16 * context.getResources().getDisplayMetrics().density);
         iv.setPadding(pad, pad, pad, pad);
+        android.widget.LinearLayout wrap = new android.widget.LinearLayout(context);
+        wrap.setOrientation(android.widget.LinearLayout.VERTICAL);
+        wrap.addView(ChoiceDialog.makeTitle(context, it.name, AppPrefs.getFontScale(context)));
+        wrap.addView(iv);
         AlertDialog dlg = new AlertDialog.Builder(context)
-                .setTitle(it.name)
-                .setView(iv)
+                .setView(wrap)
                 .setPositiveButton("关闭", null)
                 .create();
         ChoiceDialog.enlarge(context, dlg);
         dlg.show();
     }
 
-    public static void showDetail(android.content.Context ctx, Item it, boolean showCost) {
+    public static void showDetail(android.content.Context ctx, Item it, boolean showCost,
+                                  boolean showTagInfo) {
         float fs = AppPrefs.getFontScale(ctx);
         android.widget.LinearLayout box = new android.widget.LinearLayout(ctx);
         box.setOrientation(android.widget.LinearLayout.VERTICAL);
         int pad = (int) (20 * ctx.getResources().getDisplayMetrics().density);
         box.setPadding(pad, pad / 2, pad, 0);
 
-        java.util.List<Tag> tags = ItemStore.loadTags(ctx);
-        Tag tg = null;
-        for (Tag t : tags) {
-            if (it.tagId != null && it.tagId.equals(t.id)) {
-                tg = t;
-                break;
+        if (showTagInfo) {
+            java.util.List<Tag> tags = ItemStore.loadTags(ctx);
+            Tag tg = null;
+            for (Tag t : tags) {
+                if (it.tagId != null && it.tagId.equals(t.id)) {
+                    tg = t;
+                    break;
+                }
+            }
+
+            if (tg != null) {
+                addLine(box, ctx, "进货商店：" + tg.name, 0xFF1565C0, 14 * fs, false);
+            }
+            if (tg != null && tg.boss != null && !tg.boss.isEmpty()) {
+                addLine(box, ctx, "老板姓名：" + tg.boss, 0xFF444444, 14 * fs, false);
+            }
+            if (tg != null && tg.phone != null && !tg.phone.isEmpty()) {
+                final String phone = tg.phone.trim();
+                TextView tv = addLine(box, ctx, "电话：" + phone, 0xFF1565C0, 14 * fs, false);
+                tv.setOnClickListener(v -> {
+                    try {
+                        ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_DIAL,
+                                android.net.Uri.parse("tel:" + phone)));
+                    } catch (Exception ignored) {
+                    }
+                });
             }
         }
-
-        if (tg != null) {
-            addLine(box, ctx, "进货商店：" + tg.name, 0xFF1565C0, 14 * fs, false);
-        }
-        if (tg != null && tg.boss != null && !tg.boss.isEmpty()) {
-            addLine(box, ctx, "老板姓名：" + tg.boss, 0xFF444444, 14 * fs, false);
-        }
-        if (tg != null && tg.phone != null && !tg.phone.isEmpty()) {
-            final String phone = tg.phone.trim();
-            TextView tv = addLine(box, ctx, "电话：" + phone + "（点击拨打）", 0xFF1565C0, 14 * fs, false);
-            tv.setOnClickListener(v -> {
-                try {
-                    ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_DIAL,
-                            android.net.Uri.parse("tel:" + phone)));
-                } catch (Exception ignored) {
-                }
-            });
-        }
-        addLine(box, ctx, "价格：" + fmtNum(it.price) + " 元/件", 0xFF222222, 15 * fs, true);
+        addLine(box, ctx, "售价：" + fmtNum(it.price) + " 元/件", 0xFF222222, 15 * fs, true);
         if (it.boxQty > 0) {
             double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
             double per = round2(boxPrice / it.boxQty);
@@ -267,7 +273,7 @@ public class ItemAdapter extends BaseAdapter {
         if (showCost) {
             double profit = round2(it.price - it.cost);
             addLine(box, ctx,
-                    "成本：" + fmtNum(it.cost) + " ｜ 利润：" + fmtNum(profit),
+                    "单件成本：" + fmtNum(it.cost) + " / 单件利润：" + fmtNum(profit),
                     it.cost == 0 ? 0xFF999999 : (profit < 0 ? 0xFFE53935 : 0xFF444444),
                     14 * fs, profit < 0 && it.cost != 0);
             if (it.boxQty > 0) {
@@ -275,7 +281,7 @@ public class ItemAdapter extends BaseAdapter {
                 double boxCost = it.boxCost > 0 ? it.boxCost : it.cost * it.boxQty;
                 double boxProfit = round2(boxPrice2 - boxCost);
                 addLine(box, ctx,
-                        "整箱成本：" + fmtNum(boxCost) + " ｜ 整箱利润：" + fmtNum(boxProfit),
+                        "整箱成本：" + fmtNum(boxCost) + " / 整箱利润：" + fmtNum(boxProfit),
                         boxCost == 0 ? 0xFF999999
                                 : (boxProfit < 0 ? 0xFFE53935 : 0xFF444444),
                         14 * fs, boxCost != 0 && boxProfit < 0);
@@ -286,9 +292,12 @@ public class ItemAdapter extends BaseAdapter {
         }
         android.widget.ScrollView sv = new android.widget.ScrollView(ctx);
         sv.addView(box);
+        android.widget.LinearLayout wrap = new android.widget.LinearLayout(ctx);
+        wrap.setOrientation(android.widget.LinearLayout.VERTICAL);
+        wrap.addView(ChoiceDialog.makeTitle(ctx, it.name, AppPrefs.getFontScale(ctx)));
+        wrap.addView(sv);
         AlertDialog dlg = new AlertDialog.Builder(ctx)
-                .setTitle(it.name)
-                .setView(sv)
+                .setView(wrap)
                 .setPositiveButton("关闭", null)
                 .create();
         ChoiceDialog.enlarge(ctx, dlg);

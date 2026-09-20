@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -33,13 +34,11 @@ public class ChoiceDialog {
 
     public static void showMenu(Context ctx, String title, CharSequence[] items,
                                 DialogInterface.OnClickListener listener) {
-        AlertDialog dlg = new AlertDialog.Builder(ctx)
-                .setTitle(title)
-                .setItems(items, listener)
-                .setNegativeButton("取消", null)
-                .create();
-        dlg.setOnShowListener(d -> styleList(dlg));
-        dlg.show();
+        String[] arr = new String[items.length];
+        for (int i = 0; i < items.length; i++) {
+            arr[i] = String.valueOf(items[i]);
+        }
+        show(ctx, title, arr, -1, i -> listener.onClick(null, i));
     }
 
     public static void show(Context ctx, String title, String[] items,
@@ -81,9 +80,16 @@ public class ChoiceDialog {
             }
         };
         lv.setAdapter(ad);
+
+        LinearLayout box = new LinearLayout(ctx);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(makeTitle(ctx, title, fs));
+        box.addView(lv, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
         AlertDialog dlg = new AlertDialog.Builder(ctx)
-                .setTitle(title)
-                .setView(lv)
+                .setView(box)
                 .setNegativeButton("取消", null)
                 .create();
         holder[0] = dlg;
@@ -93,14 +99,37 @@ public class ChoiceDialog {
 
     public static void confirm(Context ctx, String title, String message,
                                String okText, final ConfirmListener onOk) {
+        float fs = AppPrefs.getFontScale(ctx);
+        TextView msg = new TextView(ctx);
+        msg.setText(message);
+        msg.setTextSize(15 * fs);
+        msg.setTextColor(0xFF333333);
+        int pad = dp(ctx, 20);
+        msg.setPadding(pad, pad / 2, pad, 0);
+
+        LinearLayout box = new LinearLayout(ctx);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.addView(makeTitle(ctx, title, fs));
+        box.addView(msg);
+
         AlertDialog dlg = new AlertDialog.Builder(ctx)
-                .setTitle(title)
-                .setMessage(message)
+                .setView(box)
                 .setPositiveButton(okText, (d, w) -> onOk.onOk())
                 .setNegativeButton("取消", null)
                 .create();
         enlarge(ctx, dlg);
         dlg.show();
+    }
+
+    public static TextView makeTitle(Context ctx, String title, float fs) {
+        TextView tv = new TextView(ctx);
+        tv.setText(title);
+        tv.setTextSize(Math.min(18 * fs, 22));
+        tv.setTextColor(0xFFFFFFFF);
+        tv.setTypeface(null, Typeface.BOLD);
+        tv.setPadding(dp(ctx, 20), dp(ctx, 14), dp(ctx, 20), dp(ctx, 12));
+        tv.setBackgroundColor(AppPrefs.getThemeColor(ctx));
+        return tv;
     }
 
     public static void enlarge(Context ctx, AlertDialog dlg) {
@@ -115,20 +144,6 @@ public class ChoiceDialog {
                 pos.setTextSize(16 * fs);
             }
         });
-    }
-
-    private static void styleList(AlertDialog dlg) {
-        ListView lv = dlg.getListView();
-        if (lv == null) {
-            return;
-        }
-        lv.setDivider(new ColorDrawable(0xFFDDDDDD));
-        lv.setDividerHeight(1);
-        StateListDrawable sel = new StateListDrawable();
-        sel.addState(new int[]{android.R.attr.state_pressed},
-                new ColorDrawable(PRESS_BLUE));
-        sel.addState(new int[]{}, new ColorDrawable(Color.TRANSPARENT));
-        lv.setSelector(sel);
     }
 
     private static int dp(Context ctx, int v) {

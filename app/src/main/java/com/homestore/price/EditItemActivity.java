@@ -85,7 +85,7 @@ public class EditItemActivity extends AppCompatActivity {
         etBoxPrice.setTextSize(16 * fs);
         ((Button) findViewById(R.id.btnSave)).setTextSize(16 * fs);
         btnDelete.setTextSize(15 * fs);
-        scaleLabels(findViewById(android.R.id.content), fs);
+        AppPrefs.scaleLabels(findViewById(android.R.id.content), fs);
 
         etName.setText(item.name);
         etPrice.setText(item.price == 0 ? "" : fmtNum(item.price));
@@ -271,21 +271,6 @@ public class EditItemActivity extends AppCompatActivity {
             }
         } finally {
             linking[0] = false;
-        }
-    }
-
-    private void scaleLabels(View v, float fs) {
-        if (v instanceof ViewGroup) {
-            ViewGroup g = (ViewGroup) v;
-            for (int i = 0; i < g.getChildCount(); i++) {
-                scaleLabels(g.getChildAt(i), fs);
-            }
-        } else if (v instanceof TextView) {
-            ViewGroup.LayoutParams lp = v.getLayoutParams();
-            int target = (int) (92 * v.getResources().getDisplayMetrics().density);
-            if (lp != null && lp.width == target) {
-                ((TextView) v).setTextSize(15 * fs);
-            }
         }
     }
 

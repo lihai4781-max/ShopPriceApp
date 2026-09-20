@@ -66,7 +66,7 @@ public class TagItemsActivity extends AppCompatActivity {
         });
 
         list.setOnItemLongClickListener((p, v, pos, id) -> {
-            ItemAdapter.showDetail(this, adapter.getItem(pos), adapter.isCostShown());
+            ItemAdapter.showDetail(this, adapter.getItem(pos), adapter.isCostShown(), false);
             return true;
         });
 
