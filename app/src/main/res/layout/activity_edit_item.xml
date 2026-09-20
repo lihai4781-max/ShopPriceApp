@@ -28,7 +28,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -47,6 +47,31 @@
                 android:hint="例如：可乐 500ml"
                 android:inputType="text"
                 android:maxLines="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="92dp"
+                android:layout_height="wrap_content"
+                android:text="所属店铺"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvShop"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="10dp"
+                android:text="不分类（点击选择）"
+                android:textColor="#1565C0"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <LinearLayout

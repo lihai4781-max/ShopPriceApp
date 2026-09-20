@@ -9,18 +9,9 @@
     android:paddingEnd="14dp"
     android:paddingBottom="10dp">
 
-    <ImageView
-        android:id="@+id/ivThumb"
-        android:layout_width="62dp"
-        android:layout_height="62dp"
-        android:background="#EEEEEE"
-        android:contentDescription="商品图片"
-        android:scaleType="centerCrop" />
-
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -33,37 +24,27 @@
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tvTag"
+            android:id="@+id/tvBoss"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textColor="#1565C0"
-            android:textSize="12sp"
-            android:visibility="gone" />
+            android:textColor="#777777"
+            android:textSize="13sp" />
 
         <TextView
-            android:id="@+id/tvPrice"
+            android:id="@+id/tvPhone"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:textColor="@color/primary"
-            android:textSize="15sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvCost"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
+            android:layout_marginTop="2dp"
             android:textColor="#777777"
             android:textSize="13sp" />
     </LinearLayout>
 
     <TextView
-        android:id="@+id/tvTime"
+        android:id="@+id/tvCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
-        android:textColor="#AAAAAA"
-        android:textSize="11sp" />
+        android:textColor="@color/primary"
+        android:textSize="13sp" />
 </LinearLayout>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="92dp"
+                android:layout_height="wrap_content"
+                android:text="店铺名称"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="必填，如：荣芹超市"
+                android:inputType="text"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="92dp"
+                android:layout_height="wrap_content"
+                android:text="老板姓名"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etBoss"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="可留空"
+                android:inputType="text"
+                android:maxLines="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="92dp"
+                android:layout_height="wrap_content"
+                android:text="手机联系"
+                android:textColor="#555555"
+                android:textSize="14sp" />
+
+            <EditText
+                android:id="@+id/etPhone"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="可留空"
+                android:inputType="phone"
+                android:maxLines="1" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
