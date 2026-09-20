@@ -3,6 +3,9 @@ package com.homestore.price;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 public class AppPrefs {
 
@@ -75,5 +78,20 @@ public class AppPrefs {
     public static void setBackupUri(Context ctx, String uri) {
         ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
                 .edit().putString(KEY_BACKUP_URI, uri).apply();
+    }
+
+    public static void scaleLabels(View v, float fs) {
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                scaleLabels(g.getChildAt(i), fs);
+            }
+        } else if (v instanceof TextView) {
+            ViewGroup.LayoutParams lp = v.getLayoutParams();
+            int target = (int) (100 * v.getResources().getDisplayMetrics().density);
+            if (lp != null && lp.width == target) {
+                ((TextView) v).setTextSize(15 * fs);
+            }
+        }
     }
 }

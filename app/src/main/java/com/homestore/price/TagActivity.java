@@ -147,7 +147,6 @@ public class TagActivity extends AppCompatActivity {
                 .create();
         dlg.setOnShowListener(di -> {
             Button ok = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
-            float fs = AppPrefs.getFontScale(this);
             if (ok != null) {
                 ok.setTextSize(16 * fs);
             ok.setOnClickListener(arg -> {
