@@ -138,8 +138,13 @@ public class ItemAdapter extends BaseAdapter {
         if (showCost) {
             double profit = it.price - it.cost;
             tvCost.setVisibility(View.VISIBLE);
-            tvCost.setText("成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit));
-            tvCost.setTextColor(profit < 0 ? 0xFFD32F2F : 0xFF777777);
+            if (it.cost == 0) {
+                tvCost.setText("成本 0 ｜ 利润 —（未填成本）");
+                tvCost.setTextColor(0xFF999999);
+            } else {
+                tvCost.setText("成本 " + fmtNum(it.cost) + " ｜ 利润 " + fmtNum(profit));
+                tvCost.setTextColor(profit < 0 ? 0xFFD32F2F : 0xFF777777);
+            }
             if (tg != null) {
                 String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;
                 String phone = tg.phone == null || tg.phone.isEmpty() ? "未填" : tg.phone;

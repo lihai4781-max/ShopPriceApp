@@ -17,6 +17,7 @@ public class ChoiceDialog {
 
     public static void show(Context ctx, String title, String[] items,
                             int selectedIndex, Listener listener) {
+        final AlertDialog[] holder = new AlertDialog[1];
         LinearLayout box = new LinearLayout(ctx);
         box.setOrientation(LinearLayout.VERTICAL);
         for (int i = 0; i < items.length; i++) {
@@ -29,7 +30,9 @@ public class ChoiceDialog {
             updateStyle(tv, i == selectedIndex);
             tv.setOnClickListener(v -> {
                 listener.onPick(idx);
-                dlg.dismiss();
+                if (holder[0] != null) {
+                    holder[0].dismiss();
+                }
             });
             box.addView(tv);
         }
@@ -40,6 +43,7 @@ public class ChoiceDialog {
                 .setView(sv)
                 .setNegativeButton("取消", null)
                 .create();
+        holder[0] = dlg;
         dlg.show();
     }
 

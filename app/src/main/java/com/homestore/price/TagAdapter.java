@@ -95,7 +95,7 @@ public class TagAdapter extends BaseAdapter {
         tvCount.setTextSize(13 * fs);
 
         tvPhone.setTextColor(phone.isEmpty() ? 0xFF999999 : 0xFF1565C0);
-        tvPhone.setOnClickListener(v -> {
+        tvPhone.setOnClickListener(pv -> {
             if (!phone.isEmpty()) {
                 try {
                     context.startActivity(new Intent(Intent.ACTION_DIAL,
