@@ -57,9 +57,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:ellipsize="none"
-            android:maxLines="1"
-            android:scrollHorizontally="true"
             android:textColor="#888888"
             android:textSize="12sp"
             android:visibility="gone" />
