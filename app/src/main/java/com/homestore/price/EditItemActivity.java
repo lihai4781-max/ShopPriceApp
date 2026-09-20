@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -31,6 +32,8 @@ public class EditItemActivity extends AppCompatActivity {
     private byte[] pendingPhoto;
     private boolean removePhoto = false;
     private ImageView ivPhoto;
+    private final boolean[] boxPriceTouched = {false};
+    private final boolean[] linking = {false};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,17 +71,31 @@ public class EditItemActivity extends AppCompatActivity {
         final EditText etName = findViewById(R.id.etName);
         final EditText etCost = findViewById(R.id.etCost);
         final EditText etPrice = findViewById(R.id.etPrice);
+        final EditText etBoxQty = findViewById(R.id.etBoxQty);
+        final EditText etBoxCost = findViewById(R.id.etBoxCost);
+        final EditText etBoxPrice = findViewById(R.id.etBoxPrice);
         final Button btnDelete = findViewById(R.id.btnDelete);
 
         float fs = AppPrefs.getFontScale(this);
         etName.setTextSize(16 * fs);
         etCost.setTextSize(16 * fs);
         etPrice.setTextSize(16 * fs);
+        etBoxQty.setTextSize(16 * fs);
+        etBoxCost.setTextSize(16 * fs);
+        etBoxPrice.setTextSize(16 * fs);
         ((Button) findViewById(R.id.btnSave)).setTextSize(16 * fs);
         btnDelete.setTextSize(15 * fs);
+        scaleLabels(findViewById(android.R.id.content), fs);
 
         etName.setText(item.name);
         etPrice.setText(item.price == 0 ? "" : fmtNum(item.price));
+        if (item.boxQty > 0) {
+            etBoxQty.setText(String.valueOf(item.boxQty));
+        }
+        if (item.boxPrice > 0) {
+            etBoxPrice.setText(fmtNum(item.boxPrice));
+            boxPriceTouched[0] = true;
+        }
         showPhoto(item.photo);
 
         final TextView tvShop = findViewById(R.id.tvShop);
@@ -107,23 +124,63 @@ public class EditItemActivity extends AppCompatActivity {
         final boolean[] costUnlocked = {isNew};
         if (isNew) {
             etCost.setText("");
+            etBoxCost.setText(item.boxCost == 0 ? "" : fmtNum(item.boxCost));
         } else {
             etCost.setText("••••");
             etCost.setFocusable(false);
-            etCost.setOnClickListener(v -> {
+            etBoxCost.setText("••••");
+            etBoxCost.setFocusable(false);
+            View.OnClickListener unlock = v -> {
                 if (costUnlocked[0]) {
                     return;
                 }
                 PassDialog.show(this, "查看/修改成本价（密码）", () -> {
                     costUnlocked[0] = true;
                     etCost.setText(item.cost == 0 ? "" : fmtNum(item.cost));
+                    etBoxCost.setText(item.boxCost == 0 ? "" : fmtNum(item.boxCost));
                     etCost.setFocusableInTouchMode(true);
                     etCost.setFocusable(true);
-                    etCost.requestFocus();
-                    etCost.setSelection(etCost.getText().length());
+                    etBoxCost.setFocusableInTouchMode(true);
+                    etBoxCost.setFocusable(true);
                 });
-            });
+            };
+            etCost.setOnClickListener(unlock);
+            etBoxCost.setOnClickListener(unlock);
         }
+
+        android.text.TextWatcher linkWatcher = new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                relinkBoxes(etBoxQty, etBoxCost, etCost, etPrice, etBoxPrice, costUnlocked[0]);
+            }
+        };
+        etBoxQty.addTextChangedListener(linkWatcher);
+        etBoxCost.addTextChangedListener(linkWatcher);
+        etPrice.addTextChangedListener(linkWatcher);
+        etBoxPrice.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                if (!linking[0]) {
+                    boxPriceTouched[0] = true;
+                }
+            }
+        });
 
         ivPhoto.setOnClickListener(v -> {
             CharSequence[] opts = {"拍照", "从相册选择", "删除照片"};
@@ -150,8 +207,15 @@ public class EditItemActivity extends AppCompatActivity {
             item.name = name;
             if (costUnlocked[0]) {
                 item.cost = parse(etCost);
+                item.boxCost = parse(etBoxCost);
             }
             item.price = parse(etPrice);
+            item.boxQty = (int) parse(etBoxQty);
+            item.boxPrice = parse(etBoxPrice);
+            if (item.boxQty == 0) {
+                item.boxCost = 0;
+                item.boxPrice = 0;
+            }
             item.updatedAt = System.currentTimeMillis();
             if (pendingPhoto != null) {
                 savePhotoBytes(item.id, pendingPhoto);
@@ -184,6 +248,44 @@ public class EditItemActivity extends AppCompatActivity {
                         Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
                         finish();
                     })));
+        }
+    }
+
+    private void relinkBoxes(EditText etBoxQty, EditText etBoxCost, EditText etCost,
+                             EditText etPrice, EditText etBoxPrice, boolean costUnlocked) {
+        if (linking[0]) {
+            return;
+        }
+        linking[0] = true;
+        try {
+            int qty = (int) parse(etBoxQty);
+            double boxCost = parse(etBoxCost);
+            double price = parse(etPrice);
+            if (qty > 0) {
+                if (costUnlocked && boxCost > 0) {
+                    etCost.setText(fmtNum(round2(boxCost / qty)));
+                }
+                if (!boxPriceTouched[0] && price > 0) {
+                    etBoxPrice.setText(fmtNum(price * qty));
+                }
+            }
+        } finally {
+            linking[0] = false;
+        }
+    }
+
+    private void scaleLabels(View v, float fs) {
+        if (v instanceof ViewGroup) {
+            ViewGroup g = (ViewGroup) v;
+            for (int i = 0; i < g.getChildCount(); i++) {
+                scaleLabels(g.getChildAt(i), fs);
+            }
+        } else if (v instanceof TextView) {
+            ViewGroup.LayoutParams lp = v.getLayoutParams();
+            int target = (int) (92 * v.getResources().getDisplayMetrics().density);
+            if (lp != null && lp.width == target) {
+                ((TextView) v).setTextSize(15 * fs);
+            }
         }
     }
 
@@ -299,6 +401,10 @@ public class EditItemActivity extends AppCompatActivity {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    private static double round2(double d) {
+        return Math.round(d * 100.0) / 100.0;
     }
 
     private static String fmtNum(double d) {

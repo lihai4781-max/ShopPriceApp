@@ -128,12 +128,12 @@ public class ItemAdapter extends BaseAdapter {
         TextView tvName = v.findViewById(R.id.tvName);
         TextView tvTag = v.findViewById(R.id.tvTag);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
-        TextView tvBoss = v.findViewById(R.id.tvBoss);
+        TextView tvBox = v.findViewById(R.id.tvBox);
 
         tvName.setTextSize(16 * fs);
         tvTag.setTextSize(12 * fs);
         tvPrice.setTextSize(15 * fs);
-        tvBoss.setTextSize(12 * fs);
+        tvBox.setTextSize(12 * fs);
 
         tvName.setText(it.name);
         Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
@@ -175,13 +175,23 @@ public class ItemAdapter extends BaseAdapter {
         if (showCost && showBossInfo && tg != null) {
             tvTag.setVisibility(View.VISIBLE);
             tvTag.setText("进货商店：" + tg.name);
-            String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;
-            String phone = tg.phone == null || tg.phone.isEmpty() ? "未填" : tg.phone;
-            tvBoss.setVisibility(View.VISIBLE);
-            tvBoss.setText("老板姓名：" + boss + " ｜ 电话：" + phone);
         } else {
             tvTag.setVisibility(View.GONE);
-            tvBoss.setVisibility(View.GONE);
+        }
+
+        if (it.boxQty > 0) {
+            tvBox.setVisibility(View.VISIBLE);
+            StringBuilder sb = new StringBuilder();
+            sb.append("1箱=").append(it.boxQty).append("件");
+            double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
+            if (boxPrice > 0) {
+                sb.append(" ｜ 整箱 ").append(fmtNum(boxPrice)).append("元");
+                double per = round2(boxPrice / it.boxQty);
+                sb.append("（折合 ").append(fmtNum(per)).append("元/件）");
+            }
+            tvBox.setText(sb);
+        } else {
+            tvBox.setVisibility(View.GONE);
         }
 
         Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);
@@ -211,6 +221,94 @@ public class ItemAdapter extends BaseAdapter {
                 .create();
         ChoiceDialog.enlarge(context, dlg);
         dlg.show();
+    }
+
+    public static void showDetail(android.content.Context ctx, Item it, boolean showCost) {
+        float fs = AppPrefs.getFontScale(ctx);
+        android.widget.LinearLayout box = new android.widget.LinearLayout(ctx);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (20 * ctx.getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad / 2, pad, 0);
+
+        java.util.List<Tag> tags = ItemStore.loadTags(ctx);
+        Tag tg = null;
+        for (Tag t : tags) {
+            if (it.tagId != null && it.tagId.equals(t.id)) {
+                tg = t;
+                break;
+            }
+        }
+
+        if (tg != null) {
+            addLine(box, ctx, "进货商店：" + tg.name, 0xFF1565C0, 14 * fs, false);
+        }
+        if (tg != null && tg.boss != null && !tg.boss.isEmpty()) {
+            addLine(box, ctx, "老板姓名：" + tg.boss, 0xFF444444, 14 * fs, false);
+        }
+        if (tg != null && tg.phone != null && !tg.phone.isEmpty()) {
+            final String phone = tg.phone.trim();
+            TextView tv = addLine(box, ctx, "电话：" + phone + "（点击拨打）", 0xFF1565C0, 14 * fs, false);
+            tv.setOnClickListener(v -> {
+                try {
+                    ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_DIAL,
+                            android.net.Uri.parse("tel:" + phone)));
+                } catch (Exception ignored) {
+                }
+            });
+        }
+        addLine(box, ctx, "价格：" + fmtNum(it.price) + " 元/件", 0xFF222222, 15 * fs, true);
+        if (it.boxQty > 0) {
+            double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
+            double per = round2(boxPrice / it.boxQty);
+            addLine(box, ctx, "1箱 = " + it.boxQty + " 件", 0xFF444444, 14 * fs, false);
+            addLine(box, ctx, "整箱售价：" + fmtNum(boxPrice) + " 元（折合 " + fmtNum(per) + " 元/件）",
+                    0xFF222222, 15 * fs, true);
+        }
+        if (showCost) {
+            double profit = round2(it.price - it.cost);
+            addLine(box, ctx,
+                    "成本：" + fmtNum(it.cost) + " ｜ 利润：" + fmtNum(profit),
+                    it.cost == 0 ? 0xFF999999 : (profit < 0 ? 0xFFE53935 : 0xFF444444),
+                    14 * fs, profit < 0 && it.cost != 0);
+            if (it.boxQty > 0) {
+                double boxPrice2 = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
+                double boxCost = it.boxCost > 0 ? it.boxCost : it.cost * it.boxQty;
+                double boxProfit = round2(boxPrice2 - boxCost);
+                addLine(box, ctx,
+                        "整箱成本：" + fmtNum(boxCost) + " ｜ 整箱利润：" + fmtNum(boxProfit),
+                        boxCost == 0 ? 0xFF999999
+                                : (boxProfit < 0 ? 0xFFE53935 : 0xFF444444),
+                        14 * fs, boxCost != 0 && boxProfit < 0);
+            }
+        } else {
+            addLine(box, ctx, "查看成本：点顶部「成本价」输密码后，长按商品即可显示",
+                    0xFF999999, 12 * fs, false);
+        }
+        android.widget.ScrollView sv = new android.widget.ScrollView(ctx);
+        sv.addView(box);
+        AlertDialog dlg = new AlertDialog.Builder(ctx)
+                .setTitle(it.name)
+                .setView(sv)
+                .setPositiveButton("关闭", null)
+                .create();
+        ChoiceDialog.enlarge(ctx, dlg);
+        dlg.show();
+    }
+
+    private static void addLine(android.widget.LinearLayout box, android.content.Context ctx,
+                                String text, int color, float size, boolean bold) {
+        TextView tv = new TextView(ctx);
+        tv.setText(text);
+        tv.setTextSize(size);
+        tv.setTextColor(color);
+        tv.setTypeface(null, bold ? Typeface.BOLD : Typeface.NORMAL);
+        tv.setPadding(0, (int) (6 * ctx.getResources().getDisplayMetrics().density), 0,
+                (int) (6 * ctx.getResources().getDisplayMetrics().density));
+        box.addView(tv);
+    }
+
+    private static double round2(double d) {
+        return Math.round(d * 100.0) / 100.0;
     }
 
     private static String fmtNum(double d) {

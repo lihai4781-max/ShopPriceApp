@@ -61,7 +61,7 @@ public class ChoiceDialog {
             public View getView(int position, View convertView, ViewGroup parent) {
                 TextView tv = new TextView(ctx);
                 tv.setText(data.get(position));
-                tv.setTextSize(15 * fs);
+                tv.setTextSize(Math.min(15 * fs, 18));
                 tv.setPadding(dp(ctx, 20), dp(ctx, 12), dp(ctx, 20), dp(ctx, 12));
                 if (position == selectedIndex) {
                     tv.setBackgroundColor(PRESS_BLUE);

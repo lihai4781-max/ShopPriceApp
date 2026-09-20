@@ -66,8 +66,7 @@ public class TagItemsActivity extends AppCompatActivity {
         });
 
         list.setOnItemLongClickListener((p, v, pos, id) -> {
-            Item it = adapter.getItem(pos);
-            PassDialog.show(this, "删除商品需要密码", () -> confirmDelete(it));
+            ItemAdapter.showDetail(this, adapter.getItem(pos), adapter.isCostShown());
             return true;
         });
 
@@ -182,26 +181,5 @@ public class TagItemsActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    private void confirmDelete(Item it) {
-        ChoiceDialog.confirm(this, "删除商品", "确定删除「" + it.name + "」吗？", "删除", () -> {
-            List<Item> items = ItemStore.load(this);
-            for (Item x : items) {
-                if (it.id != null && it.id.equals(x.id)) {
-                    ItemStore.deletePhoto(this, x.photo);
-                }
-            }
-            items.removeIf(x -> it.id != null && it.id.equals(x.id));
-            ItemStore.save(this, items);
-            List<Item> mine = new ArrayList<>();
-            for (Item x : ItemStore.load(this)) {
-                if (tagId != null && tagId.equals(x.tagId)) {
-                    mine.add(x);
-                }
-            }
-            adapter.setData(mine);
-            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-        });
     }
 }

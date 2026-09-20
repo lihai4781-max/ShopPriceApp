@@ -8,6 +8,9 @@ public class Item {
     public double cost;
     public double price;
     public double qty;
+    public int boxQty;
+    public double boxCost;
+    public double boxPrice;
     public long updatedAt;
     public String photo;
     public String tagId;
@@ -19,6 +22,9 @@ public class Item {
         it.cost = o.optDouble("cost", 0);
         it.price = o.optDouble("price", 0);
         it.qty = o.optDouble("qty", 0);
+        it.boxQty = o.optInt("boxQty", 0);
+        it.boxCost = o.optDouble("boxCost", 0);
+        it.boxPrice = o.optDouble("boxPrice", 0);
         it.updatedAt = o.optLong("updatedAt", 0);
         it.photo = o.has("photo") && !o.isNull("photo") ? o.optString("photo") : null;
         it.tagId = o.has("tagId") && !o.isNull("tagId") ? o.optString("tagId") : null;
@@ -32,6 +38,9 @@ public class Item {
         o.put("cost", cost);
         o.put("price", price);
         o.put("qty", qty);
+        o.put("boxQty", boxQty);
+        o.put("boxCost", boxCost);
+        o.put("boxPrice", boxPrice);
         o.put("updatedAt", updatedAt);
         if (photo != null) {
             o.put("photo", photo);

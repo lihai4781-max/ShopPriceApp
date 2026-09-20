@@ -61,8 +61,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         list.setOnItemLongClickListener((parent, view, position, id) -> {
-            Item it = adapter.getItem(position);
-            PassDialog.show(this, "删除商品需要密码", () -> confirmDelete(it));
+            ItemAdapter.showDetail(this, adapter.getItem(position), AppPrefs.isCostShown(this));
             return true;
         });
 
@@ -264,22 +263,6 @@ public class MainActivity extends AppCompatActivity {
         int shown = adapter.getCount();
         tv.setText(total == shown ? "共 " + total + " 个商品（长按删除）"
                 : "找到 " + shown + " 个 / 共 " + total + " 个商品");
-    }
-
-    private void confirmDelete(Item it) {
-        ChoiceDialog.confirm(this, "删除商品", "确定删除「" + it.name + "」吗？", "删除", () -> {
-            List<Item> items = ItemStore.load(this);
-            for (Item x : items) {
-                if (it.id != null && it.id.equals(x.id)) {
-                    ItemStore.deletePhoto(this, x.photo);
-                }
-            }
-            items.removeIf(x -> it.id != null && it.id.equals(x.id));
-            ItemStore.save(this, items);
-            adapter.setData(items);
-            updateSummary();
-            Toast.makeText(this, "已删除", Toast.LENGTH_SHORT).show();
-        });
     }
 
     @Override
