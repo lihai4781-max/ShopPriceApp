@@ -37,6 +37,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".TagActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".TagItemsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".EditItemActivity"
             android:exported="false" />
 
