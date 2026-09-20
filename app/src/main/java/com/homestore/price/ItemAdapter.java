@@ -128,21 +128,17 @@ public class ItemAdapter extends BaseAdapter {
         Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
 
         String priceText = "价格 " + fmtNum(it.price);
+        tvPrice.setTextColor(AppPrefs.getThemeColor(context));
         if (showCost) {
             double profit = it.price - it.cost;
             String costText = it.cost == 0 ? "0" : fmtNum(it.cost);
             String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
             String full = priceText + " ｜ 成本 " + costText + " ｜ 利润 " + profitText;
             SpannableString ss = new SpannableString(full);
-            int cs = full.indexOf("成本");
             int ps = full.indexOf("利润");
-            if (cs >= 0 && ps > cs) {
-                ss.setSpan(new ForegroundColorSpan(0xFF1565C0), cs, ps,
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            int profitColor = it.cost == 0 ? 0xFF999999
-                    : (profit < 0 ? 0xFFE53935 : 0xFF1565C0);
             if (ps >= 0) {
+                int profitColor = it.cost == 0 ? 0xFF999999
+                        : (profit < 0 ? 0xFFE53935 : 0xFF444444);
                 ss.setSpan(new ForegroundColorSpan(profitColor), ps, full.length(),
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }

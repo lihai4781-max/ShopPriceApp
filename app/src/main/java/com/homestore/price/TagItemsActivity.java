@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
@@ -81,6 +82,7 @@ public class TagItemsActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         refreshBossInfo();
+        adapter.setTags(ItemStore.loadTags(this));
         List<Item> mine = new ArrayList<>();
         for (Item it : ItemStore.load(this)) {
             if (tagId != null && tagId.equals(it.tagId)) {
@@ -88,6 +90,7 @@ public class TagItemsActivity extends AppCompatActivity {
             }
         }
         adapter.setData(mine);
+        updateCostBtn();
     }
 
     private void refreshBossInfo() {
@@ -113,6 +116,49 @@ public class TagItemsActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private TextView costBtn;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_tag_items, menu);
+        MenuItem costItem = menu.findItem(R.id.action_cost);
+        View v = costItem == null ? null : costItem.getActionView();
+        if (v != null) {
+            costBtn = v.findViewById(R.id.tvCostBtn);
+            if (costBtn != null) {
+                costBtn.setOnClickListener(x -> toggleCost());
+            }
+        }
+        updateCostBtn();
+        return true;
+    }
+
+    private void toggleCost() {
+        if (adapter.isCostShown()) {
+            adapter.setShowCost(false);
+            Toast.makeText(this, "已隐藏成本价", Toast.LENGTH_SHORT).show();
+        } else {
+            PassDialog.show(this, "查看成本价（密码）", () -> {
+                adapter.setShowCost(true);
+                Toast.makeText(this, "已显示成本价，再点一次「成本价」可隐藏", Toast.LENGTH_LONG).show();
+            });
+        }
+        updateCostBtn();
+    }
+
+    private void updateCostBtn() {
+        if (costBtn != null) {
+            boolean on = adapter != null && adapter.isCostShown();
+            if (on) {
+                costBtn.setBackgroundColor(AppPrefs.getThemeColor(this));
+                costBtn.setTextColor(0xFFFFFFFF);
+            } else {
+                costBtn.setBackground(null);
+                costBtn.setTextColor(0xFF333333);
+            }
+        }
     }
 
     private Tag findTag() {

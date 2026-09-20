@@ -312,8 +312,13 @@ public class MainActivity extends AppCompatActivity {
     private void updateCostBtn() {
         if (costBtn != null) {
             boolean on = adapter != null && adapter.isCostShown();
-            costBtn.setBackgroundResource(on ? R.drawable.bg_cost_on : R.drawable.bg_cost_off);
-            costBtn.setText(on ? "成本价●" : "成本价");
+            if (on) {
+                costBtn.setBackgroundColor(AppPrefs.getThemeColor(this));
+                costBtn.setTextColor(0xFFFFFFFF);
+            } else {
+                costBtn.setBackground(null);
+                costBtn.setTextColor(0xFF333333);
+            }
         }
     }
 
@@ -329,10 +334,10 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_backup) {
-            ChoiceDialog.show(this, "备份 / 恢复", new String[]{
+            ChoiceDialog.showMenu(this, "备份 / 恢复", new CharSequence[]{
                     "① 保存备份（覆盖之前保存的）",
                     "② 从备份恢复",
-                    "③ 永久删除备份（需密码）"}, -1, w -> {
+                    "③ 永久删除备份（需密码）"}, (d, w) -> {
                 if (w == 0) {
                     doBackup();
                 } else if (w == 1) {
@@ -344,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_settings) {
-            ChoiceDialog.show(this, "设置", new String[]{"背景颜色", "字体大小"}, -1, w -> {
+            ChoiceDialog.showMenu(this, "设置", new CharSequence[]{"背景颜色", "字体大小"}, (d, w) -> {
                 if (w == 0) {
                     showColorDialog();
                 } else {
