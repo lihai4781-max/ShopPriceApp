@@ -152,6 +152,10 @@ public class ItemAdapter extends BaseAdapter {
             if (cs >= 0) {
                 ss.setSpan(new AbsoluteSizeSpan(smallPx), cs, full.length(),
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ss.setSpan(new ForegroundColorSpan(0xFF444444), cs, full.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ss.setSpan(new StyleSpan(Typeface.NORMAL), cs, full.length(),
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
             if (ps >= 0) {
                 int profitColor = it.cost == 0 ? 0xFF999999
