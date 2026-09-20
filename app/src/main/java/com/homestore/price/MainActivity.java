@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         adapter = new ItemAdapter(this);
+        adapter.setShowCost(AppPrefs.isCostShown(this));
         ListView list = findViewById(R.id.listView);
         list.setAdapter(adapter);
 
@@ -301,10 +302,12 @@ public class MainActivity extends AppCompatActivity {
     private void toggleCost() {
         if (adapter.isCostShown()) {
             adapter.setShowCost(false);
+            AppPrefs.setCostShown(this, false);
             Toast.makeText(this, "已隐藏成本价", Toast.LENGTH_SHORT).show();
         } else {
             PassDialog.show(this, "查看成本价（密码）", () -> {
                 adapter.setShowCost(true);
+                AppPrefs.setCostShown(this, true);
                 Toast.makeText(this, "已显示成本价，再点一次「成本价」可隐藏", Toast.LENGTH_LONG).show();
             });
         }

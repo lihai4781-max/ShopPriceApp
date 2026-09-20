@@ -31,6 +31,12 @@ public class ItemAdapter extends BaseAdapter {
     private final Map<String, Tag> tagMap = new HashMap<>();
     private String keyword = "";
     private boolean showCost = false;
+    private boolean showBossInfo = true;
+
+    public void setShowBossInfo(boolean b) {
+        showBossInfo = b;
+        notifyDataSetChanged();
+    }
 
     public ItemAdapter(Context context) {
         this.context = context;
@@ -60,7 +66,9 @@ public class ItemAdapter extends BaseAdapter {
 
     public void setData(List<Item> items) {
         all.clear();
-        all.addAll(items);
+        List<Item> sorted = new ArrayList<>(items);
+        sorted.sort((a, b) -> Long.compare(b.updatedAt, a.updatedAt));
+        all.addAll(sorted);
         refilter();
     }
 
@@ -137,24 +145,23 @@ public class ItemAdapter extends BaseAdapter {
             String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
             String full = priceText + " ｜ 成本 " + costText + " ｜ 利润 " + profitText;
             SpannableString ss = new SpannableString(full);
-            int cs = full.indexOf("成本");
             int ps = full.indexOf("利润");
-            if (cs >= 0) {
-                ss.setSpan(new StyleSpan(Typeface.NORMAL), cs, full.length(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
             if (ps >= 0) {
                 int profitColor = it.cost == 0 ? 0xFF999999
                         : (profit < 0 ? 0xFFE53935 : 0xFF444444);
                 ss.setSpan(new ForegroundColorSpan(profitColor), ps, full.length(),
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                if (it.cost != 0 && profit < 0) {
+                    ss.setSpan(new StyleSpan(Typeface.BOLD), ps, full.length(),
+                            Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
             }
             tvPrice.setText(ss);
         } else {
             tvPrice.setText(priceText);
         }
 
-        if (showCost && tg != null) {
+        if (showCost && showBossInfo && tg != null) {
             tvTag.setVisibility(View.VISIBLE);
             tvTag.setText("进货商店：" + tg.name);
             String boss = tg.boss == null || tg.boss.isEmpty() ? "未填" : tg.boss;

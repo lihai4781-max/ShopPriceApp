@@ -18,6 +18,16 @@ public class AppPrefs {
     private static final String KEY = "color_index";
     private static final String KEY_FONT = "font_index";
     private static final String KEY_BACKUP_URI = "backup_uri";
+    private static final String KEY_COST = "cost_shown";
+
+    public static boolean isCostShown(Context ctx) {
+        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_COST, false);
+    }
+
+    public static void setCostShown(Context ctx, boolean b) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_COST, b).apply();
+    }
 
     public static int getColorIndex(Context ctx) {
         return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getInt(KEY, 0);
