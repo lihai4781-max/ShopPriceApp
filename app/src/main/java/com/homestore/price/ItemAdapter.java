@@ -151,7 +151,7 @@ public class ItemAdapter extends BaseAdapter {
         String priceText = "售价 " + fmtNum(it.price);
         tvPrice.setTextColor(AppPrefs.getThemeColor(context));
         if (priceListener != null) {
-            tvPrice.setOnClickListener(v -> priceListener.onEdit(it));
+            tvPrice.setOnClickListener(pv -> priceListener.onEdit(it));
         }
         if (showCost) {
             double profit = it.price - it.cost;
