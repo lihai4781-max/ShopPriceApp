@@ -90,7 +90,18 @@ public class TagItemsActivity extends AppCompatActivity {
             }
         }
         adapter.setData(mine);
+        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, this::loadMine));
         updateCostBtn();
+    }
+
+    private void loadMine() {
+        List<Item> mine = new ArrayList<>();
+        for (Item it : ItemStore.load(this)) {
+            if (tagId != null && tagId.equals(it.tagId)) {
+                mine.add(it);
+            }
+        }
+        adapter.setData(mine);
     }
 
     private void refreshBossInfo() {

@@ -122,31 +122,55 @@ public class BackupUtil {
         if (!dir.exists() && !dir.mkdirs()) {
             throw new Exception("无法创建备份文件夹：" + dir.getAbsolutePath());
         }
-        File[] files = dir.listFiles();
-        if (files != null) {
-            for (File f : files) {
-                if (f.getName().startsWith("ShopPriceBackup")) {
-                    f.delete();
-                }
-            }
-        }
-        File out = new File(dir, FILE_NAME);
+        String ts = new java.text.SimpleDateFormat("MMdd_HHmm", java.util.Locale.getDefault())
+                .format(new java.util.Date());
+        File out = new File(dir, "ShopPriceBackup_" + ts + ".zip");
         try (FileOutputStream fos = new FileOutputStream(out)) {
             fos.write(data);
         }
+        trimOldBackups(dir, 5);
+    }
+
+    private static void trimOldBackups(File dir, int keep) {
+        List<File> zips = listBackupFiles(dir);
+        for (int i = keep; i < zips.size(); i++) {
+            zips.get(i).delete();
+        }
+    }
+
+    public static List<File> listBackupFiles(File dir) {
+        List<File> zips = new ArrayList<>();
+        File[] files = dir == null ? null : dir.listFiles();
+        if (files != null) {
+            for (File f : files) {
+                String n = f.getName();
+                if ((n.startsWith("ShopPriceBackup") && n.endsWith(".zip"))
+                        || n.equals(FILE_NAME) || n.equals(LEGACY_NAME)) {
+                    zips.add(f);
+                }
+            }
+            zips.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+        }
+        return zips;
+    }
+
+    public static File latestBackup(Context ctx) throws Exception {
+        List<File> zips = listBackupFiles(backupDir());
+        if (!zips.isEmpty()) {
+            return zips.get(0);
+        }
+        byte[] legacy = readOldDownload(ctx);
+        if (legacy != null) {
+            return null;
+        }
+        throw new Exception("备份文件夹里没有备份文件，请先「保存备份」");
     }
 
     public static byte[] read(Context ctx) throws Exception {
-        File dir = backupDir();
-        if (dir.exists()) {
-            File f = new File(dir, FILE_NAME);
-            if (!f.exists()) {
-                f = new File(dir, LEGACY_NAME);
-            }
-            if (f.exists()) {
-                try (InputStream is = new FileInputStream(f)) {
-                    return readAll(is);
-                }
+        List<File> zips = listBackupFiles(backupDir());
+        if (!zips.isEmpty()) {
+            try (InputStream is = new FileInputStream(zips.get(0))) {
+                return readAll(is);
             }
         }
         byte[] legacy = readOldDownload(ctx);
@@ -154,6 +178,12 @@ public class BackupUtil {
             return legacy;
         }
         throw new Exception("备份文件夹里没有备份文件，请先「保存备份」");
+    }
+
+    public static byte[] read(File f) throws Exception {
+        try (InputStream is = new FileInputStream(f)) {
+            return readAll(is);
+        }
     }
 
     public static long size(Context ctx) throws Exception {

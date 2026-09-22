@@ -22,6 +22,16 @@ public class AppPrefs {
     private static final String KEY_FONT = "font_index";
     private static final String KEY_BACKUP_URI = "backup_uri";
     private static final String KEY_COST = "cost_shown";
+    private static final String KEY_SHOW_PHOTOS = "show_photos";
+
+    public static boolean isShowPhotos(Context ctx) {
+        return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_SHOW_PHOTOS, true);
+    }
+
+    public static void setShowPhotos(Context ctx, boolean b) {
+        ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_SHOW_PHOTOS, b).apply();
+    }
 
     public static boolean isCostShown(Context ctx) {
         return ctx.getSharedPreferences(PREF, Context.MODE_PRIVATE).getBoolean(KEY_COST, false);

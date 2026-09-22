@@ -205,6 +205,7 @@ public class EditItemActivity extends AppCompatActivity {
                 return;
             }
             item.name = name;
+            double oldPrice = item.price;
             if (costUnlocked[0]) {
                 item.cost = parse(etCost);
                 item.boxCost = parse(etBoxCost);
@@ -215,6 +216,10 @@ public class EditItemActivity extends AppCompatActivity {
             if (item.boxQty == 0) {
                 item.boxCost = 0;
                 item.boxPrice = 0;
+            }
+            if (oldPrice != item.price) {
+                item.addHistory(new java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault())
+                        .format(new java.util.Date()) + " 售价 " + fmtNum(oldPrice) + " → " + fmtNum(item.price));
             }
             item.updatedAt = System.currentTimeMillis();
             if (pendingPhoto != null) {

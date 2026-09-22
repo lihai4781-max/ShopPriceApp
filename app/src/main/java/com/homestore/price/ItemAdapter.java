@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -25,6 +26,10 @@ import java.util.Map;
 
 public class ItemAdapter extends BaseAdapter {
 
+    public interface PriceEditListener {
+        void onEdit(Item it);
+    }
+
     private final Context context;
     private final List<Item> all = new ArrayList<>();
     private final List<Item> shown = new ArrayList<>();
@@ -33,6 +38,11 @@ public class ItemAdapter extends BaseAdapter {
     private String keyword = "";
     private boolean showCost = false;
     private boolean showBossInfo = true;
+    private PriceEditListener priceListener;
+
+    public void setOnPriceEdit(PriceEditListener l) {
+        priceListener = l;
+    }
 
     public void setShowBossInfo(boolean b) {
         showBossInfo = b;
@@ -140,6 +150,9 @@ public class ItemAdapter extends BaseAdapter {
 
         String priceText = "售价 " + fmtNum(it.price);
         tvPrice.setTextColor(AppPrefs.getThemeColor(context));
+        if (priceListener != null) {
+            tvPrice.setOnClickListener(v -> priceListener.onEdit(it));
+        }
         if (showCost) {
             double profit = it.price - it.cost;
             String costText = it.cost == 0 ? "0" : fmtNum(it.cost);
@@ -194,11 +207,16 @@ public class ItemAdapter extends BaseAdapter {
             tvBox.setVisibility(View.GONE);
         }
 
-        Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);
-        if (bm != null) {
-            ivThumb.setImageBitmap(bm);
+        if (AppPrefs.isShowPhotos(context)) {
+            ivThumb.setVisibility(View.VISIBLE);
+            Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);
+            if (bm != null) {
+                ivThumb.setImageBitmap(bm);
+            } else {
+                ivThumb.setImageResource(R.drawable.ic_photo_placeholder);
+            }
         } else {
-            ivThumb.setImageResource(R.drawable.ic_photo_placeholder);
+            ivThumb.setVisibility(View.GONE);
         }
         ivThumb.setOnClickListener(x -> showBigImage(it));
         return v;
@@ -234,34 +252,6 @@ public class ItemAdapter extends BaseAdapter {
         int pad = (int) (20 * ctx.getResources().getDisplayMetrics().density);
         box.setPadding(pad, pad / 2, pad, 0);
 
-        if (showTagInfo) {
-            java.util.List<Tag> tags = ItemStore.loadTags(ctx);
-            Tag tg = null;
-            for (Tag t : tags) {
-                if (it.tagId != null && it.tagId.equals(t.id)) {
-                    tg = t;
-                    break;
-                }
-            }
-
-            if (tg != null) {
-                addLine(box, ctx, "进货商店：" + tg.name, 0xFF1565C0, 14 * fs, false);
-            }
-            if (tg != null && tg.boss != null && !tg.boss.isEmpty()) {
-                addLine(box, ctx, "老板姓名：" + tg.boss, 0xFF444444, 14 * fs, false);
-            }
-            if (tg != null && tg.phone != null && !tg.phone.isEmpty()) {
-                final String phone = tg.phone.trim();
-                TextView tv = addLine(box, ctx, "电话：" + phone, 0xFF1565C0, 14 * fs, false);
-                tv.setOnClickListener(v -> {
-                    try {
-                        ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_DIAL,
-                                android.net.Uri.parse("tel:" + phone)));
-                    } catch (Exception ignored) {
-                    }
-                });
-            }
-        }
         addLine(box, ctx, "售价：" + fmtNum(it.price) + " 元/件", 0xFF222222, 15 * fs, true);
         if (it.boxQty > 0) {
             double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
@@ -290,6 +280,40 @@ public class ItemAdapter extends BaseAdapter {
             addLine(box, ctx, "查看成本：点顶部「成本价」输密码后，长按商品即可显示",
                     0xFF999999, 12 * fs, false);
         }
+        if (it.history != null && !it.history.isEmpty()) {
+            addLine(box, ctx, "最近改价：", 0xFF888888, 13 * fs, false);
+            for (String h : it.history) {
+                addLine(box, ctx, h, 0xFF888888, 13 * fs, false);
+            }
+        }
+        if (showTagInfo) {
+            java.util.List<Tag> tags = ItemStore.loadTags(ctx);
+            Tag tg = null;
+            for (Tag t : tags) {
+                if (it.tagId != null && it.tagId.equals(t.id)) {
+                    tg = t;
+                    break;
+                }
+            }
+
+            if (tg != null) {
+                addLine(box, ctx, "进货商店：" + tg.name, 0xFF1565C0, 14 * fs, false);
+            }
+            if (tg != null && tg.boss != null && !tg.boss.isEmpty()) {
+                addLine(box, ctx, "老板姓名：" + tg.boss, 0xFF444444, 14 * fs, false);
+            }
+            if (tg != null && tg.phone != null && !tg.phone.isEmpty()) {
+                final String phone = tg.phone.trim();
+                TextView tv = addLine(box, ctx, "电话：" + phone, 0xFF1565C0, 14 * fs, false);
+                tv.setOnClickListener(v -> {
+                    try {
+                        ctx.startActivity(new android.content.Intent(android.content.Intent.ACTION_DIAL,
+                                android.net.Uri.parse("tel:" + phone)));
+                    } catch (Exception ignored) {
+                    }
+                });
+            }
+        }
         android.widget.ScrollView sv = new android.widget.ScrollView(ctx);
         sv.addView(box);
         android.widget.LinearLayout wrap = new android.widget.LinearLayout(ctx);
@@ -302,6 +326,80 @@ public class ItemAdapter extends BaseAdapter {
                 .create();
         ChoiceDialog.enlarge(ctx, dlg);
         dlg.show();
+    }
+
+    public static void showQuickPrice(android.content.Context ctx, Item it, Runnable onChanged) {
+        float fs = AppPrefs.getFontScale(ctx);
+        android.widget.EditText et = new android.widget.EditText(ctx);
+        et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER
+                | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        et.setText(it.price == 0 ? "" : fmtNum(it.price));
+        android.widget.FrameLayout wrapInput = new android.widget.FrameLayout(ctx);
+        int pad = (int) (20 * ctx.getResources().getDisplayMetrics().density);
+        wrapInput.setPadding(pad, pad / 2, pad, 0);
+        wrapInput.addView(et);
+
+        android.widget.LinearLayout box = new android.widget.LinearLayout(ctx);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        box.addView(ChoiceDialog.makeTitle(ctx, "修改售价：" + it.name, fs));
+        box.addView(wrapInput);
+
+        AlertDialog dlg = new AlertDialog.Builder(ctx)
+                .setView(box)
+                .setPositiveButton("保存", null)
+                .setNegativeButton("取消", null)
+                .create();
+        dlg.setOnShowListener(d -> {
+            float f2 = AppPrefs.getFontScale(ctx);
+            Button ok = dlg.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (ok != null) {
+                ok.setTextSize(16 * f2);
+                ok.setOnClickListener(v -> {
+                    double p = parseNum(et);
+                    if (p <= 0) {
+                        android.widget.Toast.makeText(ctx, "请输入正确的售价",
+                                android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    String old = fmtNum(it.price);
+                    it.price = p;
+                    it.updatedAt = System.currentTimeMillis();
+                    it.addHistory(nowStr(ctx) + " 售价 " + old + " → " + fmtNum(p));
+                    List<Item> all = ItemStore.load(ctx);
+                    for (int i = 0; i < all.size(); i++) {
+                        if (it.id != null && it.id.equals(all.get(i).id)) {
+                            all.set(i, it);
+                        }
+                    }
+                    try {
+                        ItemStore.save(ctx, all);
+                    } catch (Exception ignored) {
+                    }
+                    android.widget.Toast.makeText(ctx, "售价已改为 " + fmtNum(p),
+                            android.widget.Toast.LENGTH_SHORT).show();
+                    dlg.dismiss();
+                    onChanged.run();
+                });
+            }
+            Button neg = dlg.getButton(AlertDialog.BUTTON_NEGATIVE);
+            if (neg != null) {
+                neg.setTextSize(16 * f2);
+            }
+        });
+        dlg.show();
+    }
+
+    private static double parseNum(android.widget.EditText et) {
+        try {
+            return Double.parseDouble(et.getText().toString().trim());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    private static String nowStr(android.content.Context ctx) {
+        return new java.text.SimpleDateFormat("MM-dd",
+                java.util.Locale.getDefault()).format(new java.util.Date());
     }
 
     private static TextView addLine(android.widget.LinearLayout box, android.content.Context ctx,
@@ -321,7 +419,7 @@ public class ItemAdapter extends BaseAdapter {
         return Math.round(d * 100.0) / 100.0;
     }
 
-    private static String fmtNum(double d) {
+    public static String fmtNum(double d) {
         if (d == Math.rint(d) && Math.abs(d) < 1e15) {
             return String.valueOf((long) d);
         }

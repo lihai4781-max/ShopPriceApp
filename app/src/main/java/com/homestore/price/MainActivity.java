@@ -27,6 +27,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.List;
 
@@ -107,6 +108,11 @@ public class MainActivity extends AppCompatActivity {
         applyTheme();
         adapter.setTags(ItemStore.loadTags(this));
         adapter.setData(ItemStore.load(this));
+        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, () -> {
+            adapter.setTags(ItemStore.loadTags(this));
+            adapter.setData(ItemStore.load(this));
+            updateSummary();
+        }));
         updateSummary();
     }
 
@@ -177,8 +183,8 @@ public class MainActivity extends AppCompatActivity {
                     ItemStore.toJsonAll(ItemStore.load(this), ItemStore.loadTags(this)),
                     ItemStore.loadAllPhotos(this));
             BackupUtil.save(this, data);
-            Toast.makeText(this, "备份成功！位置：内部存储根目录/ShopPriceBackup/"
-                    + BackupUtil.FILE_NAME, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "备份成功！位置：内部存储根目录/ShopPriceBackup/（保留最近5份）",
+                    Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             Toast.makeText(this, "备份失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
         }
@@ -213,13 +219,26 @@ public class MainActivity extends AppCompatActivity {
         if (!ensureStorageAccess()) {
             return;
         }
-        try {
-            applyRestore(BackupUtil.unpackAny(BackupUtil.read(this)));
-        } catch (Exception e) {
+        List<File> zips = BackupUtil.listBackupFiles(BackupUtil.backupDir());
+        if (zips.isEmpty()) {
             Toast.makeText(this, "没有自动找到备份文件，请在弹出的窗口中选择备份文件",
                     Toast.LENGTH_SHORT).show();
             pickBackupFile();
+            return;
         }
+        String[] names = new String[zips.size()];
+        java.text.SimpleDateFormat fmt =
+                new java.text.SimpleDateFormat("MM-dd HH:mm", java.util.Locale.getDefault());
+        for (int i = 0; i < zips.size(); i++) {
+            names[i] = zips.get(i).getName() + "（" + fmt.format(new java.util.Date(zips.get(i).lastModified())) + "）";
+        }
+        ChoiceDialog.showMenu(this, "选择要恢复的备份（选最新的）", names, (d, w) -> {
+            try {
+                applyRestore(BackupUtil.unpackAny(BackupUtil.read(zips.get(w))));
+            } catch (Exception e) {
+                Toast.makeText(this, "恢复失败：" + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void doDeleteBackup() {
@@ -339,16 +358,72 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         if (id == R.id.action_settings) {
-            ChoiceDialog.showMenu(this, "设置", new CharSequence[]{"背景颜色", "字体大小"}, (d, w) -> {
+            ChoiceDialog.showMenu(this, "设置", new CharSequence[]{
+                    "背景颜色",
+                    "字体大小",
+                    AppPrefs.isShowPhotos(this) ? "列表显示图片：开（点击改关）"
+                            : "列表显示图片：关（点击改开）",
+                    "查看亏损商品（需密码）"}, (d, w) -> {
                 if (w == 0) {
                     showColorDialog();
-                } else {
+                } else if (w == 1) {
                     showFontDialog();
+                } else if (w == 2) {
+                    AppPrefs.setShowPhotos(this, !AppPrefs.isShowPhotos(this));
+                    recreate();
+                } else {
+                    showLossList();
                 }
             });
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showLossList() {
+        PassDialog.show(this, "查看亏损商品（密码）", () -> {
+            List<Item> loss = new java.util.ArrayList<>();
+            for (Item it : ItemStore.load(this)) {
+                if (it.cost > 0 && it.price - it.cost < 0) {
+                    loss.add(it);
+                }
+            }
+            if (loss.isEmpty()) {
+                Toast.makeText(this, "没有亏损商品，都很健康", Toast.LENGTH_LONG).show();
+                return;
+            }
+            float fs = AppPrefs.getFontScale(this);
+            android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+            box.setOrientation(android.widget.LinearLayout.VERTICAL);
+            int pad = (int) (20 * getResources().getDisplayMetrics().density);
+            box.setPadding(pad, pad / 2, pad, 0);
+            for (Item it : loss) {
+                android.widget.TextView tv = new android.widget.TextView(this);
+                tv.setText(it.name + "\n售价 " + ItemAdapter.fmtNum(it.price) + " / 成本 "
+                        + ItemAdapter.fmtNum(it.cost) + " / 利润 "
+                        + ItemAdapter.fmtNum(round2(it.price - it.cost)));
+                tv.setTextSize(14 * fs);
+                tv.setTextColor(0xFFE53935);
+                tv.setPadding(0, (int) (6 * getResources().getDisplayMetrics().density), 0,
+                        (int) (6 * getResources().getDisplayMetrics().density));
+                box.addView(tv);
+            }
+            android.widget.ScrollView sv = new android.widget.ScrollView(this);
+            sv.addView(box);
+            android.widget.LinearLayout wrap = new android.widget.LinearLayout(this);
+            wrap.setOrientation(android.widget.LinearLayout.VERTICAL);
+            wrap.addView(ChoiceDialog.makeTitle(this, "亏损商品（" + loss.size() + " 个）", fs));
+            wrap.addView(sv);
+            new AlertDialog.Builder(this)
+                    .setView(wrap)
+                    .setPositiveButton("关闭", null)
+                    .create()
+                    .show();
+        });
+    }
+
+    private static double round2(double d) {
+        return Math.round(d * 100.0) / 100.0;
     }
 
     private void showColorDialog() {
