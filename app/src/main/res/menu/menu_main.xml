@@ -10,7 +10,7 @@
 
     <item
         android:id="@+id/action_tag"
-        android:title="👥进货老板"
+        android:title="👥老板"
         app:showAsAction="always" />
 
     <item
