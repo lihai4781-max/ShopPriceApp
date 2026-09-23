@@ -214,13 +214,18 @@ public class EditItemActivity extends AppCompatActivity {
                 Toast.makeText(this, "请输入商品名称", Toast.LENGTH_SHORT).show();
                 return;
             }
+            double newPrice = parse(etPrice);
+            if (newPrice <= 0) {
+                Toast.makeText(this, "单个售价必填，请输入卖给顾客的价格", Toast.LENGTH_SHORT).show();
+                return;
+            }
             item.name = name;
             double oldPrice = item.price;
             if (costUnlocked[0]) {
                 item.cost = parse(etCost);
                 item.boxCost = parse(etBoxCost);
             }
-            item.price = parse(etPrice);
+            item.price = newPrice;
             item.boxQty = (int) parse(etBoxQty);
             item.boxPrice = parse(etBoxPrice);
             if (item.boxQty == 0) {

@@ -164,6 +164,12 @@ public class ItemAdapter extends BaseAdapter {
             tvCostLine.setVisibility(View.GONE);
         }
 
+        if (showCost && it.cost > 0 && it.price - it.cost < 0) {
+            v.setBackgroundColor(0xFFFFCDD2);
+        } else {
+            v.setBackgroundResource(R.drawable.press_blue);
+        }
+
         if (AppPrefs.isShowPhotos(context)) {
             ivThumb.setVisibility(View.VISIBLE);
             Bitmap bm = ItemStore.decodeThumb(context, it.photo, 128);
@@ -175,7 +181,12 @@ public class ItemAdapter extends BaseAdapter {
         } else {
             ivThumb.setVisibility(View.GONE);
         }
-        ivThumb.setOnClickListener(x -> showBigImage(it));
+        if (it.photo != null) {
+            ivThumb.setOnClickListener(x -> showBigImage(it));
+        } else {
+            ivThumb.setClickable(false);
+            ivThumb.setOnClickListener(null);
+        }
         return v;
     }
 
