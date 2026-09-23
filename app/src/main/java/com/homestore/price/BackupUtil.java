@@ -128,7 +128,7 @@ public class BackupUtil {
         try (FileOutputStream fos = new FileOutputStream(out)) {
             fos.write(data);
         }
-        trimOldBackups(dir, 5);
+        trimOldBackups(dir, 3);
     }
 
     private static void trimOldBackups(File dir, int keep) {

@@ -123,6 +123,14 @@ public class MainActivity extends AppCompatActivity {
         autoBackup();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (isFinishing()) {
+            AppPrefs.setCostShown(this, false);
+        }
+    }
+
     private void autoBackup() {
         try {
             if (Build.VERSION.SDK_INT >= 30 && !Environment.isExternalStorageManager()) {
@@ -282,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
         TextView tv = findViewById(R.id.tvSummary);
         int total = adapter.getTotalCount();
         int shown = adapter.getCount();
-        tv.setText(total == shown ? "共 " + total + " 个商品（长按删除）"
+        tv.setText(total == shown ? "共 " + total + " 个商品（长按查看信息）"
                 : "找到 " + shown + " 个 / 共 " + total + " 个商品");
     }
 

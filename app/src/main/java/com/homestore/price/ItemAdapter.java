@@ -136,43 +136,34 @@ public class ItemAdapter extends BaseAdapter {
         float fs = AppPrefs.getFontScale(context);
         ImageView ivThumb = v.findViewById(R.id.ivThumb);
         TextView tvName = v.findViewById(R.id.tvName);
-        TextView tvTag = v.findViewById(R.id.tvTag);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
+        TextView tvCostLine = v.findViewById(R.id.tvCostLine);
         TextView tvBox = v.findViewById(R.id.tvBox);
 
         tvName.setTextSize(16 * fs);
-        tvTag.setTextSize(12 * fs);
         tvPrice.setTextSize(15 * fs);
+        tvCostLine.setTextSize(13 * fs);
         tvBox.setTextSize(12 * fs);
 
         tvName.setText(it.name);
-        Tag tg = it.tagId == null ? null : tagMap.get(it.tagId);
 
-        String priceText = "售价 " + fmtNum(it.price);
+        tvPrice.setText("单个售价 " + fmtNum(it.price));
         tvPrice.setTextColor(AppPrefs.getThemeColor(context));
         if (priceListener != null) {
             tvPrice.setOnClickListener(pv -> priceListener.onEdit(it));
         }
         if (showCost) {
-            double profit = it.price - it.cost;
+            double profit = round2(it.price - it.cost);
             String costText = it.cost == 0 ? "0" : fmtNum(it.cost);
             String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
-            String full = priceText + " ｜ 成本 " + costText + " ｜ 利润 " + profitText;
+            String full = "单个成本 " + costText + " ｜ 单个利润 " + profitText;
             SpannableString ss = new SpannableString(full);
-            int cs = full.indexOf("成本");
             int ps = full.indexOf("利润");
-            int smallPx = (int) (13 * fs * context.getResources().getDisplayMetrics().scaledDensity);
-            if (cs >= 0) {
-                ss.setSpan(new AbsoluteSizeSpan(smallPx), cs, full.length(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ss.setSpan(new ForegroundColorSpan(0xFF444444), cs, full.length(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                ss.setSpan(new StyleSpan(Typeface.NORMAL), cs, full.length(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
             if (ps >= 0) {
                 int profitColor = it.cost == 0 ? 0xFF999999
                         : (profit < 0 ? 0xFFE53935 : 0xFF444444);
+                ss.setSpan(new ForegroundColorSpan(0xFF444444), 0, ps,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 ss.setSpan(new ForegroundColorSpan(profitColor), ps, full.length(),
                         Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 if (it.cost != 0 && profit < 0) {
@@ -180,16 +171,10 @@ public class ItemAdapter extends BaseAdapter {
                             Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 }
             }
-            tvPrice.setText(ss);
+            tvCostLine.setText(ss);
+            tvCostLine.setVisibility(View.VISIBLE);
         } else {
-            tvPrice.setText(priceText);
-        }
-
-        if (showCost && showBossInfo && tg != null) {
-            tvTag.setVisibility(View.VISIBLE);
-            tvTag.setText("进货商店：" + tg.name);
-        } else {
-            tvTag.setVisibility(View.GONE);
+            tvCostLine.setVisibility(View.GONE);
         }
 
         if (it.boxQty > 0) {

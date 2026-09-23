@@ -70,7 +70,7 @@ public class Item {
             history = new ArrayList<>();
         }
         history.add(record);
-        while (history.size() > 5) {
+        while (history.size() > 3) {
             history.remove(0);
         }
     }
