@@ -145,7 +145,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="一箱多少个，不按箱卖可留空"
+                android:hint="一箱多少个"
                 android:inputType="number"
                 android:maxLines="1" />
         </LinearLayout>
@@ -170,7 +170,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="一箱的进货价，自动算出单件成本"
+                android:hint="一箱进货价，自动算出单个成本"
                 android:inputType="numberDecimal"
                 android:maxLines="1" />
         </LinearLayout>
@@ -195,7 +195,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="留空则按 售价×数量 自动算"
+                android:hint="不输就按 售价x数量"
                 android:inputType="numberDecimal"
                 android:maxLines="1" />
         </LinearLayout>
