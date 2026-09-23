@@ -131,9 +131,9 @@ public class EditItemActivity extends AppCompatActivity {
         });
         }
 
-        final boolean[] costUnlocked = {isNew};
-        if (isNew) {
-            etCost.setText("");
+        final boolean[] costUnlocked = {isNew || AppPrefs.isCostShown(this)};
+        if (costUnlocked[0]) {
+            etCost.setText(item.cost == 0 ? "" : fmtNum(item.cost));
             etBoxCost.setText(item.boxCost == 0 ? "" : fmtNum(item.boxCost));
         } else {
             etCost.setText("••••");

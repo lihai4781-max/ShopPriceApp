@@ -164,8 +164,11 @@ public class ItemAdapter extends BaseAdapter {
             tvCostLine.setVisibility(View.GONE);
         }
 
-        if (showCost && it.cost > 0 && it.price - it.cost < 0) {
+        double diff = it.cost > 0 ? round2(it.price - it.cost) : 0;
+        if (it.cost > 0 && diff < -0.005) {
             v.setBackgroundColor(0xFFFFCDD2);
+        } else if (it.cost > 0 && Math.abs(diff) < 0.005) {
+            v.setBackgroundColor(0xFFBDBDBD);
         } else {
             v.setBackgroundResource(R.drawable.press_blue);
         }
