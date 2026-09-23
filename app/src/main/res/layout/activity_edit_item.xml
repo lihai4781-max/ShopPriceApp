@@ -51,6 +51,7 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/layoutShop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
@@ -59,8 +60,8 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
+                android:layout_marginEnd="4dp"
                 android:text="进货老板"
                 android:textColor="#555555"
                 android:textSize="15sp" />
