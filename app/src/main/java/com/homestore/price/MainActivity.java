@@ -108,7 +108,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         applyTheme();
         loadData();
-        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, this::loadData));
     }
 
     private void loadData() {

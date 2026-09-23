@@ -83,14 +83,7 @@ public class TagItemsActivity extends AppCompatActivity {
         super.onResume();
         refreshBossInfo();
         adapter.setTags(ItemStore.loadTags(this));
-        List<Item> mine = new ArrayList<>();
-        for (Item it : ItemStore.load(this)) {
-            if (tagId != null && tagId.equals(it.tagId)) {
-                mine.add(it);
-            }
-        }
-        adapter.setData(mine);
-        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, this::loadMine));
+        loadMine();
         updateCostBtn();
     }
 

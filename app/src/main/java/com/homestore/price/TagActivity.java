@@ -162,13 +162,22 @@ public class TagActivity extends AppCompatActivity {
                         return;
                     }
                 }
-                t.name = name;
+                    t.name = name;
                     t.boss = etBoss.getText().toString().trim();
                     t.phone = etPhone.getText().toString().trim();
                     t.updatedAt = System.currentTimeMillis();
                     List<Tag> tags = ItemStore.loadTags(this);
-                    tags.removeIf(x -> t.id != null && t.id.equals(x.id));
-                    tags.add(t);
+                    boolean found = false;
+                    for (int i = 0; i < tags.size(); i++) {
+                        if (t.id != null && t.id.equals(tags.get(i).id)) {
+                            tags.set(i, t);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        tags.add(0, t);
+                    }
                     ItemStore.saveTags(this, tags);
                     dlg.dismiss();
                     reload();

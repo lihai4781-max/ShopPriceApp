@@ -57,6 +57,7 @@ public class EditItemActivity extends AppCompatActivity {
         item = target != null ? target : new Item();
         if (item.id == null) {
             item.id = java.util.UUID.randomUUID().toString();
+            item.createdAt = System.currentTimeMillis();
         }
         if (item.tagId == null) {
             String fromTag = getIntent().getStringExtra("tag_id");

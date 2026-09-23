@@ -16,6 +16,7 @@ public class Item {
     public double boxCost;
     public double boxPrice;
     public long updatedAt;
+    public long createdAt;
     public String photo;
     public String tagId;
     public boolean fc;
@@ -32,6 +33,7 @@ public class Item {
         it.boxCost = o.optDouble("boxCost", 0);
         it.boxPrice = o.optDouble("boxPrice", 0);
         it.updatedAt = o.optLong("updatedAt", 0);
+        it.createdAt = o.optLong("createdAt", 0);
         it.photo = o.has("photo") && !o.isNull("photo") ? o.optString("photo") : null;
         it.tagId = o.has("tagId") && !o.isNull("tagId") ? o.optString("tagId") : null;
         it.fc = o.optBoolean("fc", false);
@@ -55,6 +57,7 @@ public class Item {
         o.put("boxCost", boxCost);
         o.put("boxPrice", boxPrice);
         o.put("updatedAt", updatedAt);
+        o.put("createdAt", createdAt);
         if (photo != null) {
             o.put("photo", photo);
         }

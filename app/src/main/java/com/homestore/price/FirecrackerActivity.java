@@ -79,7 +79,6 @@ public class FirecrackerActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         loadMine();
-        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, this::loadMine));
     }
 
     private void loadMine() {
