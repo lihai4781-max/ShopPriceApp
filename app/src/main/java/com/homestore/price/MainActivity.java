@@ -107,13 +107,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         applyTheme();
+        loadData();
+        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, this::loadData));
+    }
+
+    private void loadData() {
         adapter.setTags(ItemStore.loadTags(this));
-        adapter.setData(ItemStore.load(this));
-        adapter.setOnPriceEdit(it -> ItemAdapter.showQuickPrice(this, it, () -> {
-            adapter.setTags(ItemStore.loadTags(this));
-            adapter.setData(ItemStore.load(this));
-            updateSummary();
-        }));
+        List<Item> items = new java.util.ArrayList<>();
+        for (Item it : ItemStore.load(this)) {
+            if (!it.fc) {
+                items.add(it);
+            }
+        }
+        adapter.setData(items);
         updateSummary();
     }
 
@@ -351,6 +357,10 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, TagActivity.class));
             return true;
         }
+        if (id == R.id.action_firecracker) {
+            startActivity(new Intent(this, FirecrackerActivity.class));
+            return true;
+        }
         if (id == R.id.action_backup) {
             ChoiceDialog.showMenu(this, "备份 / 恢复", new CharSequence[]{
                     "① 保存备份（覆盖之前保存的）",
@@ -372,7 +382,7 @@ public class MainActivity extends AppCompatActivity {
                     "字体大小",
                     AppPrefs.isShowPhotos(this) ? "列表显示图片：开（点击改关）"
                             : "列表显示图片：关（点击改开）",
-                    "查看亏损商品（需密码）"}, (d, w) -> {
+                    "查看亏损商品"}, (d, w) -> {
                 if (w == 0) {
                     showColorDialog();
                 } else if (w == 1) {
@@ -390,45 +400,56 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showLossList() {
-        PassDialog.show(this, "查看亏损商品（密码）", () -> {
-            List<Item> loss = new java.util.ArrayList<>();
-            for (Item it : ItemStore.load(this)) {
-                if (it.cost > 0 && it.price - it.cost < 0) {
-                    loss.add(it);
+        List<Item> all = ItemStore.load(this);
+        List<String> lines = new java.util.ArrayList<>();
+        int count = 0;
+        for (Item it : all) {
+            if (it.cost > 0 && it.price - it.cost < 0) {
+                lines.add(it.name + "\n售价 " + ItemAdapter.fmtNum(it.price) + " / 成本 "
+                        + ItemAdapter.fmtNum(it.cost) + " / 单件利润 "
+                        + ItemAdapter.fmtNum(round2(it.price - it.cost)));
+                count++;
+            }
+            if (it.boxQty > 0 && it.boxCost > 0) {
+                double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
+                double bp = round2(boxPrice - it.boxCost);
+                if (bp < 0) {
+                    lines.add(it.name + "（整箱）\n整箱售价 " + ItemAdapter.fmtNum(boxPrice)
+                            + " / 整箱成本 " + ItemAdapter.fmtNum(it.boxCost)
+                            + " / 利润 " + ItemAdapter.fmtNum(bp));
+                    count++;
                 }
             }
-            if (loss.isEmpty()) {
-                Toast.makeText(this, "没有亏损商品，都很健康", Toast.LENGTH_LONG).show();
-                return;
-            }
-            float fs = AppPrefs.getFontScale(this);
-            android.widget.LinearLayout box = new android.widget.LinearLayout(this);
-            box.setOrientation(android.widget.LinearLayout.VERTICAL);
-            int pad = (int) (20 * getResources().getDisplayMetrics().density);
-            box.setPadding(pad, pad / 2, pad, 0);
-            for (Item it : loss) {
-                android.widget.TextView tv = new android.widget.TextView(this);
-                tv.setText(it.name + "\n售价 " + ItemAdapter.fmtNum(it.price) + " / 成本 "
-                        + ItemAdapter.fmtNum(it.cost) + " / 利润 "
-                        + ItemAdapter.fmtNum(round2(it.price - it.cost)));
-                tv.setTextSize(14 * fs);
-                tv.setTextColor(0xFFE53935);
-                tv.setPadding(0, (int) (6 * getResources().getDisplayMetrics().density), 0,
-                        (int) (6 * getResources().getDisplayMetrics().density));
-                box.addView(tv);
-            }
-            android.widget.ScrollView sv = new android.widget.ScrollView(this);
-            sv.addView(box);
-            android.widget.LinearLayout wrap = new android.widget.LinearLayout(this);
-            wrap.setOrientation(android.widget.LinearLayout.VERTICAL);
-            wrap.addView(ChoiceDialog.makeTitle(this, "亏损商品（" + loss.size() + " 个）", fs));
-            wrap.addView(sv);
-            new AlertDialog.Builder(this)
-                    .setView(wrap)
-                    .setPositiveButton("关闭", null)
-                    .create()
-                    .show();
-        });
+        }
+        if (lines.isEmpty()) {
+            Toast.makeText(this, "没有亏损商品，都很健康", Toast.LENGTH_LONG).show();
+            return;
+        }
+        float fs = AppPrefs.getFontScale(this);
+        android.widget.LinearLayout box = new android.widget.LinearLayout(this);
+        box.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (20 * getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad / 2, pad, 0);
+        for (String s : lines) {
+            android.widget.TextView tv = new android.widget.TextView(this);
+            tv.setText(s);
+            tv.setTextSize(14 * fs);
+            tv.setTextColor(0xFFE53935);
+            tv.setPadding(0, (int) (6 * getResources().getDisplayMetrics().density), 0,
+                    (int) (6 * getResources().getDisplayMetrics().density));
+            box.addView(tv);
+        }
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.addView(box);
+        android.widget.LinearLayout wrap = new android.widget.LinearLayout(this);
+        wrap.setOrientation(android.widget.LinearLayout.VERTICAL);
+        wrap.addView(ChoiceDialog.makeTitle(this, "亏损商品（" + count + " 项）", fs));
+        wrap.addView(sv);
+        new AlertDialog.Builder(this)
+                .setView(wrap)
+                .setPositiveButton("关闭", null)
+                .create()
+                .show();
     }
 
     private static double round2(double d) {

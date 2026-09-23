@@ -18,6 +18,7 @@ public class Item {
     public long updatedAt;
     public String photo;
     public String tagId;
+    public boolean fc;
     public List<String> history = new ArrayList<>();
 
     public static Item fromJson(JSONObject o) {
@@ -33,6 +34,7 @@ public class Item {
         it.updatedAt = o.optLong("updatedAt", 0);
         it.photo = o.has("photo") && !o.isNull("photo") ? o.optString("photo") : null;
         it.tagId = o.has("tagId") && !o.isNull("tagId") ? o.optString("tagId") : null;
+        it.fc = o.optBoolean("fc", false);
         JSONArray hs = o.optJSONArray("history");
         if (hs != null) {
             for (int i = 0; i < hs.length(); i++) {
@@ -58,6 +60,9 @@ public class Item {
         }
         if (tagId != null && !tagId.isEmpty()) {
             o.put("tagId", tagId);
+        }
+        if (fc) {
+            o.put("fc", true);
         }
         if (history != null && !history.isEmpty()) {
             o.put("history", new JSONArray(history));

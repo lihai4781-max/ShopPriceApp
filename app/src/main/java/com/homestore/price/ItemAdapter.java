@@ -138,16 +138,14 @@ public class ItemAdapter extends BaseAdapter {
         TextView tvName = v.findViewById(R.id.tvName);
         TextView tvPrice = v.findViewById(R.id.tvPrice);
         TextView tvCostLine = v.findViewById(R.id.tvCostLine);
-        TextView tvBox = v.findViewById(R.id.tvBox);
 
         tvName.setTextSize(16 * fs);
         tvPrice.setTextSize(15 * fs);
         tvCostLine.setTextSize(13 * fs);
-        tvBox.setTextSize(12 * fs);
 
         tvName.setText(it.name);
 
-        tvPrice.setText("单个售价 " + fmtNum(it.price));
+        tvPrice.setText("售价 " + fmtNum(it.price) + " 元");
         tvPrice.setTextColor(AppPrefs.getThemeColor(context));
         if (priceListener != null) {
             tvPrice.setOnClickListener(pv -> priceListener.onEdit(it));
@@ -156,7 +154,7 @@ public class ItemAdapter extends BaseAdapter {
             double profit = round2(it.price - it.cost);
             String costText = it.cost == 0 ? "0" : fmtNum(it.cost);
             String profitText = it.cost == 0 ? "—（未填成本）" : fmtNum(profit);
-            String full = "单个成本 " + costText + " ｜ 单个利润 " + profitText;
+            String full = "成本 " + costText + " ｜ 利润 " + profitText;
             SpannableString ss = new SpannableString(full);
             int ps = full.indexOf("利润");
             if (ps >= 0) {
@@ -175,21 +173,6 @@ public class ItemAdapter extends BaseAdapter {
             tvCostLine.setVisibility(View.VISIBLE);
         } else {
             tvCostLine.setVisibility(View.GONE);
-        }
-
-        if (it.boxQty > 0) {
-            tvBox.setVisibility(View.VISIBLE);
-            StringBuilder sb = new StringBuilder();
-            sb.append("1箱=").append(it.boxQty).append("件");
-            double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
-            if (boxPrice > 0) {
-                sb.append(" ｜ 整箱 ").append(fmtNum(boxPrice)).append("元");
-                double per = round2(boxPrice / it.boxQty);
-                sb.append("（折合 ").append(fmtNum(per)).append("元/件）");
-            }
-            tvBox.setText(sb);
-        } else {
-            tvBox.setVisibility(View.GONE);
         }
 
         if (AppPrefs.isShowPhotos(context)) {
@@ -237,7 +220,7 @@ public class ItemAdapter extends BaseAdapter {
         int pad = (int) (20 * ctx.getResources().getDisplayMetrics().density);
         box.setPadding(pad, pad / 2, pad, 0);
 
-        addLine(box, ctx, "售价：" + fmtNum(it.price) + " 元/件", 0xFF222222, 15 * fs, true);
+        addLine(box, ctx, "单个售价：" + fmtNum(it.price) + " 元/件", 0xFF222222, 15 * fs, true);
         if (it.boxQty > 0) {
             double boxPrice = it.boxPrice > 0 ? it.boxPrice : it.price * it.boxQty;
             double per = round2(boxPrice / it.boxQty);

@@ -65,7 +65,11 @@ public class EditItemActivity extends AppCompatActivity {
             }
         }
         final boolean isNew = target == null;
-        setTitle(isNew ? "添加商品" : "修改商品");
+        final boolean isFc = getIntent().getBooleanExtra("fc", false);
+        setTitle(isNew ? (isFc ? "添加鞭炮" : "添加商品") : (isFc ? "修改鞭炮" : "修改商品"));
+        if (isFc) {
+            item.tagId = null;
+        }
 
         ivPhoto = findViewById(R.id.ivPhoto);
         final EditText etName = findViewById(R.id.etName);
@@ -99,8 +103,12 @@ public class EditItemActivity extends AppCompatActivity {
         showPhoto(item.photo);
 
         final TextView tvShop = findViewById(R.id.tvShop);
-        updateShopText(tvShop);
-        tvShop.setOnClickListener(v -> {
+        View layoutShop = findViewById(R.id.layoutShop);
+        if (isFc) {
+            layoutShop.setVisibility(View.GONE);
+        } else {
+            updateShopText(tvShop);
+            tvShop.setOnClickListener(v -> {
             List<Tag> tags = ItemStore.loadTags(this);
             String[] names = new String[tags.size() + 1];
             names[0] = "不选进货老板";
@@ -120,6 +128,7 @@ public class EditItemActivity extends AppCompatActivity {
                 updateShopText(tvShop);
             });
         });
+        }
 
         final boolean[] costUnlocked = {isNew};
         if (isNew) {
@@ -222,6 +231,10 @@ public class EditItemActivity extends AppCompatActivity {
                         .format(new java.util.Date()) + " 售价 " + fmtNum(oldPrice) + " → " + fmtNum(item.price));
             }
             item.updatedAt = System.currentTimeMillis();
+            item.fc = isFc;
+            if (isFc) {
+                item.tagId = null;
+            }
             if (pendingPhoto != null) {
                 savePhotoBytes(item.id, pendingPhoto);
                 item.photo = item.id + ".jpg";
