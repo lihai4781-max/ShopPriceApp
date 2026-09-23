@@ -10,12 +10,12 @@
 
     <item
         android:id="@+id/action_tag"
-        android:title="进货老板"
+        android:title="👥进货老板"
         app:showAsAction="always" />
 
     <item
         android:id="@+id/action_firecracker"
-        android:title="鞭炮"
+        android:title="🧨鞭炮"
         app:showAsAction="always" />
 
     <item
