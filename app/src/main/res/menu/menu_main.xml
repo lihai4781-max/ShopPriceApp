@@ -14,6 +14,11 @@
         app:showAsAction="always" />
 
     <item
+        android:id="@+id/action_firecracker"
+        android:title="鞭炮"
+        app:showAsAction="always" />
+
+    <item
         android:id="@+id/action_sync"
         android:title="蓝牙同步"
         app:showAsAction="never" />
