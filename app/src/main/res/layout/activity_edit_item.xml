@@ -34,7 +34,7 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
                 android:text="商品名称"
                 android:textColor="#555555"
@@ -59,7 +59,7 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
                 android:text="进货老板"
                 android:textColor="#555555"
@@ -85,9 +85,9 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
-                android:text="成本价(元)"
+                android:text="单个成本"
                 android:textColor="#555555"
                 android:textSize="15sp" />
 
@@ -109,9 +109,9 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
-                android:text="售价(元)"
+                android:text="单个售价"
                 android:textColor="#555555"
                 android:textSize="15sp" />
 
@@ -133,7 +133,7 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
                 android:text="每箱数量"
                 android:textColor="#555555"
@@ -158,7 +158,7 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
                 android:text="整箱成本"
                 android:textColor="#555555"
@@ -183,7 +183,7 @@
 
             <TextView
                 android:layout_width="100dp"
-                android:layout_marginEnd="8dp"
+                android:layout_marginEnd="4dp"
                 android:layout_height="wrap_content"
                 android:text="整箱售价"
                 android:textColor="#555555"
